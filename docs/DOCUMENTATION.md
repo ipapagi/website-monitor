@@ -154,3 +154,66 @@ python -m src.main --list-active
 - `api_response.json`: Η τελευταία απάντηση του API.
 - `debug_api_error.txt`: Λεπτομέρειες αν αποτύχει το request.
 
+---
+
+## Ανάλυση Κώδικα
+
+### src/main.py
+Το σημείο εισόδου της εφαρμογής. Διαχειρίζεται τη ροή εκτέλεσης βάσει των παραμέτρων.
+
+- **`main()`**: 
+  - Αρχικοποιεί τον `argparse` για τα ορίσματα (`--save-baseline`, `--compare`, κλπ).
+  - Φορτώνει το configuration καλώντας την `utils.load_config`.
+  - Δημιουργεί το αντικείμενο `PKMMonitor`.
+  - Εκτελεί τη λογική διακλάδωσης:
+    - Αν δοθούν ορίσματα "μίας εκτέλεσης" (save/compare/list), κάνει login, φέρνει τα δεδομένα, εκτελεί την ενέργεια και τερματίζει.
+    - Αν δεν δοθούν ορίσματα, ξεκινά το continuous monitoring (`monitor.start_monitoring()`).
+- **`save_baseline(active_procedures)`**: 
+  - Δημιουργεί τον φάκελο `data/` αν δεν υπάρχει.
+  - Αποθηκεύει τη λίστα των ενεργών διαδικασιών σε JSON αρχείο, προσθέτοντας metadata (`timestamp`, `count`).
+- **`compare_with_baseline(current, baseline)`**: 
+  - Μετατρέπει τις λίστες σε dictionaries με κλειδί το `docid` για γρήγορη αναζήτηση.
+  - Ελέγχει για:
+    - **New**: `docid` που υπάρχει στο current αλλά όχι στο baseline (και είναι ενεργό).
+    - **Removed**: `docid` που υπάρχει στο baseline αλλά όχι στο current.
+    - **Activated/Deactivated**: Αλλαγή στο πεδίο `ενεργή`.
+    - **Modified**: Αλλαγές σε άλλα πεδία (π.χ. τίτλος, κατάσταση) για ενεργές διαδικασίες.
+- **`print_comparison_results(changes, baseline_data)`**:
+  - Εμφανίζει τα αποτελέσματα με χρωματιστή μορφοποίηση και emojis για εύκολη ανάγνωση.
+
+### src/monitor.py
+Περιέχει την επιχειρησιακή λογική για την επικοινωνία με την πλατφόρμα.
+
+- **`PKMMonitor` class**:
+  - **`__init__`**: Αρχικοποιεί το `requests.Session`, απενεργοποιεί τα SSL warnings (λόγω self-signed certificates) και ορίζει τα URLs.
+  - **`login()`**: 
+    - Κάνει πρώτα GET στη σελίδα login για να πάρει το `JSESSIONID` cookie.
+    - Εκτελεί POST request με τα credentials.
+    - Ψάχνει το JWT token είτε στα headers είτε στο JSON response body.
+    - Αποθηκεύει το token στο `self.jwt_token`.
+  - **`fetch_page()`**: 
+    - Ελέγχει αν υπάρχει login, αλλιώς κάνει login.
+    - Προσθέτει το JWT token στον header `Authorization: Bearer ...`.
+    - Προσθέτει timestamp (`_dc`) στα query params για αποφυγή caching.
+    - Ανιχνεύει αν το session έληξε (αν το response URL γύρισε σε login page) και κάνει αυτόματα re-login.
+    - Αποθηκεύει το raw response σε `api_response.json` για debugging.
+  - **`parse_table_data(json_data)`**: 
+    - Ελέγχει την εγκυρότητα του JSON (`success: true`).
+    - Κάνει iterate στα records του `data`.
+    - Αποκωδικοποιεί HTML entities (π.χ. `&Alpha;` -> `Α`) στην περιγραφή.
+    - Χαρτογραφεί τα κρυπτικά ονόματα πεδίων του API (π.χ. `W003_P_FLD4`) σε φιλικά ονόματα (`τίτλος`).
+    - Φιλτράρει ποιες διαδικασίες είναι ενεργές (`W003_P_FLD3 == 'ΝΑΙ'`).
+  - **`start_monitoring()`**: 
+    - Τρέχει σε ατέρμονο βρόχο (while True).
+    - Καλεί την `fetch_page` και συγκρίνει τα νέα δεδομένα με τα προηγούμενα (`previous_data`).
+    - Εμφανίζει ειδοποιήσεις (print/sound/toast) αν βρεθούν αλλαγές.
+    - Περιμένει `check_interval` δευτερόλεπτα.
+
+### src/utils.py
+Διαχείριση ρυθμίσεων.
+
+- **`load_config()`**: 
+  - Φορτώνει μεταβλητές περιβάλλοντος από το αρχείο `.env` χρησιμοποιώντας τη βιβλιοθήκη `python-dotenv`.
+  - Διαβάζει το αρχείο `config.yaml` με τη βιβλιοθήκη `PyYAML`.
+  - Ενσωματώνει τα credentials (`PKM_USERNAME`, `PKM_PASSWORD`) στο configuration dictionary, ώστε να μην υπάρχουν hardcoded κωδικοί στον κώδικα.
+
