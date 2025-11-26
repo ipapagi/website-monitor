@@ -1,0 +1,37 @@
+# Base URL του server
+base_url: "https://shde.pkm.gov.gr/dev"
+
+# URLs για τις διάφορες λειτουργίες
+urls:
+  login_page: "/login.jsp"
+  login_api: "/services/LoginServices/loginWeb"
+  main_page: "/ext_main.jsp?locale=el"
+  data_api: "/services/SearchServices/getSearchDataByQueryId"
+
+# API parameters για το data endpoint (ενεργές διαδικασίες)
+api_params:
+  isPoll: false
+  queryId: 1
+  queryOwner: 2
+  isCase: false
+  stateId: "welcomeGrid-17_dashboard2"
+  page: 1
+  start: 0
+  limit: 100
+
+# Login parameters
+login_params:
+  application: "2"
+  otp: ""
+
+# Ρυθμίσεις παρακολούθησης
+check_interval: 300  # seconds (5 minutes)
+
+# Credentials φορτώνονται από .env αρχείο
+# Δημιούργησε .env αρχείο με:
+# PKM_USERNAME=your_username
+# PKM_PASSWORD=your_password
+
+# Εναλλακτικά: Session Cookies
+session_cookies:
+  JSESSIONID: ""
