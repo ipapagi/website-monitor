@@ -1,5 +1,5 @@
 # Base URL του server
-base_url: "https://shde.pkm.gov.gr/dev"
+base_url: "https://shde.pkm.gov.gr"
 
 # URLs για τις διάφορες λειτουργίες
 urls:
