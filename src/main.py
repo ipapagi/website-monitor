@@ -115,47 +115,45 @@ def print_comparison_results(changes, baseline_data):
         has_changes = True
         print(f"\n🆕 ΝΕΕΣ ΕΝΕΡΓΕΣ ΔΙΑΔΙΚΑΣΙΕΣ ({len(changes['new'])})")
         print("─" * 80)
-        for proc in changes['new']:
-            print(f"  ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+        for idx, proc in enumerate(changes['new'], 1):
+            print(f"{idx:3}. ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
     
     if changes['activated']:
         has_changes = True
         print(f"\n🔓 ΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['activated'])})")
         print("─" * 80)
-        for item in changes['activated']:
+        for idx, item in enumerate(changes['activated'], 1):
             proc = item['new']
-            print(f"  ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            print(f"{idx:3}. ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
             print(f"     └─ Ενεργή: ΟΧΙ → ΝΑΙ")
     
     if changes['deactivated']:
         has_changes = True
         print(f"\n🔒 ΑΠΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['deactivated'])})")
         print("─" * 80)
-        for item in changes['deactivated']:
+        for idx, item in enumerate(changes['deactivated'], 1):
             proc = item['new']
-            print(f"  ❌ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            print(f"{idx:3}. ❌ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
             print(f"     └─ Ενεργή: ΝΑΙ → ΟΧΙ")
     
     if changes['removed']:
         has_changes = True
         print(f"\n🗑️  ΑΦΑΙΡΕΘΗΚΑΝ ({len(changes['removed'])})")
         print("─" * 80)
-        for proc in changes['removed']:
-            print(f"  ⚠️  [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+        for idx, proc in enumerate(changes['removed'], 1):
+            print(f"{idx:3}. ⚠️  [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
     
     if changes['modified']:
         has_changes = True
         print(f"\n🔄 ΤΡΟΠΟΠΟΙΗΘΗΚΑΝ ({len(changes['modified'])})")
         print("─" * 80)
-        for mod in changes['modified']:
-            print(f"  📝 [{mod['new'].get('κωδικός')}] {mod['new'].get('τίτλος', '')}")
-            # Εμφάνιση τι άλλαξε
+        for idx, mod in enumerate(changes['modified'], 1):
+            print(f"{idx:3}. 📝 [{mod['new'].get('κωδικός')}] {mod['new'].get('τίτλος', '')}")
             field_changes = mod.get('field_changes', {})
             for field, vals in field_changes.items():
-                if field not in ['docid', '_raw']:  # Αγνόησε τα τεχνικά πεδία
+                if field not in ['docid', '_raw']:
                     old_val = vals['old'] if vals['old'] else '(κενό)'
                     new_val = vals['new'] if vals['new'] else '(κενό)'
-                    # Περιόρισε μεγάλες τιμές
                     if len(str(old_val)) > 50:
                         old_val = str(old_val)[:50] + '...'
                     if len(str(new_val)) > 50:
