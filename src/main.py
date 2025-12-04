@@ -250,7 +250,13 @@ def simplify_incoming_records(records):
         submitted_at = rec.get('DATE_INSERTED_ISO') or rec.get('W003_DATA_INSERT') or rec.get('DATE_INSERT') or rec.get('SUBMIT_DATE') or ''
         party_raw = rec.get('W007_P_FLD13') or rec.get('party') or rec.get('customer') or rec.get('applicant') or ''
         party_name = sanitize_party_name(party_raw)
-        simplified.append({'case_id': case_id, 'submitted_at': submitted_at, 'party': party_name})
+        doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
+        simplified.append({
+            'case_id': case_id,
+            'submitted_at': submitted_at,
+            'party': party_name,
+            'doc_id': doc_id
+        })
     return simplified
 
 def compare_incoming_records(current, previous):
