@@ -61,7 +61,7 @@ python -m src.main --save-baseline
 ### Έλεγχος Εισερχόμενων Αιτήσεων (Portal)
 Καταγράφει τις νέες αιτήσεις της ημέρας και συγκρίνει με το ημερήσιο snapshot:
 ```bash
-python -m src.main --check-incoming
+python -m src.main --check-incoming-portal
 ```
 
 ### Σύγκριση με Baseline
@@ -84,6 +84,7 @@ python -m src.main
 ```bash
 python -m src.main --save-baseline --list-active
 python -m src.main --compare --list-active
+python -m src.main --check-incoming-portal
 ```
 
 ## Project Structure

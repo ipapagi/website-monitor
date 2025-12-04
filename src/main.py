@@ -337,7 +337,7 @@ def main():
         help='Δεν ξεκινά continuous monitoring'
     )
     parser.add_argument(
-        '--check-incoming',
+        '--check-incoming-portal',
         action='store_true',
         help='Ελέγχει τις εισερχόμενες αιτήσεις (portal) και αποθηκεύει ημερήσιο snapshot'
     )
@@ -369,7 +369,7 @@ def main():
     )
     
     # Αν χρειάζεται σύγκριση ή αποθήκευση, πρέπει να πάρουμε τα δεδομένα
-    if args.save_baseline or args.compare or args.list_active or args.check_incoming:
+    if args.save_baseline or args.compare or args.list_active or args.check_incoming_portal:
         print("\n🔄 Ανάκτηση δεδομένων...")
         
         # Login και fetch
@@ -416,7 +416,7 @@ def main():
                 print("💡 Τρέξε πρώτα με --save-baseline για να δημιουργήσεις ένα.")
         
         # Έλεγχος εισερχόμενων αιτήσεων
-        if args.check_incoming:
+        if args.check_incoming_portal:
             incoming_params = config.get('incoming_api_params', INCOMING_DEFAULT_PARAMS).copy()
             json_data_incoming = fetch_incoming_records(monitor, incoming_params)
             if not json_data_incoming or not json_data_incoming.get('success', False):
@@ -434,7 +434,7 @@ def main():
                 save_incoming_snapshot(today_str, incoming_records)
         
         # Αν --no-monitor, τερμάτισε
-        if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming:
+        if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming_portal:
             sys.exit(0)
     
     # Start monitoring
