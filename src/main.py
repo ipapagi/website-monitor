@@ -235,7 +235,16 @@ def sanitize_party_name(raw_party):
 def simplify_incoming_records(records):
     simplified = []
     for rec in records:
-        case_id = str(rec.get('DOCID') or rec.get('docid') or rec.get('CASE_ID') or '').strip()
+        case_id_raw = (
+            rec.get('W007_P_FLD21')
+            or rec.get('Αρ. εγγράφου')
+            or rec.get('αρ. εγγράφου')
+            or rec.get('αρ_εγγράφου')
+            or rec.get('DOCID')
+            or rec.get('docid')
+            or rec.get('CASE_ID')
+        )
+        case_id = str(case_id_raw or '').strip()
         if not case_id:
             continue
         submitted_at = rec.get('DATE_INSERTED_ISO') or rec.get('W003_DATA_INSERT') or rec.get('DATE_INSERT') or rec.get('SUBMIT_DATE') or ''
