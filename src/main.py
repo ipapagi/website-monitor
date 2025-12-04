@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 # Προσθήκη του src directory στο path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -223,6 +224,14 @@ def load_previous_incoming_snapshot(current_date_str):
             return snapshot_str, load_incoming_snapshot(snapshot_str)
     return None, None
 
+def sanitize_party_name(raw_party):
+    if not raw_party:
+        return ''
+    text = str(raw_party)
+    text = re.sub(r'\s*[-–]?\s*\(?\b\d{9}\b\)?', '', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    return text.strip()
+
 def simplify_incoming_records(records):
     simplified = []
     for rec in records:
@@ -230,7 +239,9 @@ def simplify_incoming_records(records):
         if not case_id:
             continue
         submitted_at = rec.get('DATE_INSERTED_ISO') or rec.get('W003_DATA_INSERT') or rec.get('DATE_INSERT') or rec.get('SUBMIT_DATE') or ''
-        simplified.append({'case_id': case_id, 'submitted_at': submitted_at})
+        party_raw = rec.get('W007_P_FLD13') or rec.get('party') or rec.get('customer') or rec.get('applicant') or ''
+        party_name = sanitize_party_name(party_raw)
+        simplified.append({'case_id': case_id, 'submitted_at': submitted_at, 'party': party_name})
     return simplified
 
 def compare_incoming_records(current, previous):
@@ -241,7 +252,7 @@ def compare_incoming_records(current, previous):
     removed_docs = [r for cid, r in prev_dict.items() if cid not in curr_dict]
     modified = []
     for cid, record in curr_dict.items():
-        if cid in prev_dict and record != prev_dict[cid]:
+        if cid in prev_dict and record.get('submitted_at') != prev_dict[cid].get('submitted_at'):
             modified.append({'old': prev_dict[cid], 'new': record})
     return {'new': new_docs, 'removed': removed_docs, 'modified': modified}
 
@@ -259,17 +270,25 @@ def print_incoming_changes(changes, has_reference_snapshot, date_str, reference_
             print(f"\n🆕 Νέες αιτήσεις ({len(changes['new'])})")
             print("─"*80)
             for idx, rec in enumerate(changes['new'], 1):
-                print(f"{idx:3}. [+] Υπόθεση {rec.get('case_id', 'N/A')} – Ημερ.: {rec.get('submitted_at', 'N/A')}")
+                party = (rec.get('party') or '').strip()
+                case_id = rec.get('case_id', 'N/A')
+                submitted = rec.get('submitted_at', 'N/A')
+                submitted_display = submitted.ljust(26)
+                party_display = party if party else '—'
+                print(f"{idx:>3}. [+] Υπόθεση {case_id:<8} │ Ημερ.: {submitted_display} │ Συναλλασσόμενος: {party_display}")
         if changes['removed']:
             print(f"\n🗑️  Αφαιρέθηκαν ({len(changes['removed'])})")
             print("─"*80)
             for idx, rec in enumerate(changes['removed'], 1):
-                print(f"{idx:3}. [-] Υπόθεση {rec.get('case_id', 'N/A')} – Ημερ.: {rec.get('submitted_at', 'N/A')}")
+                party = f" – {rec.get('party')}" if rec.get('party') else ''
+                print(f"{idx:3}. [-] Υπόθεση {rec.get('case_id', 'N/A')} – Ημερ.: {rec.get('submitted_at', 'N/A')}{party}")
         if changes['modified']:
             print(f"\n🔄 Τροποποιήθηκαν ({len(changes['modified'])})")
             print("─"*80)
             for idx, pair in enumerate(changes['modified'], 1):
-                print(f"{idx:3}. [~] Υπόθεση {pair['new'].get('case_id', 'N/A')}")
+                party = pair['new'].get('party') or pair['old'].get('party') or ''
+                party_info = f" – {party}" if party else ''
+                print(f"{idx:3}. [~] Υπόθεση {pair['new'].get('case_id', 'N/A')}{party_info}")
                 print(f"     └─ Παλαιό: {pair['old'].get('submitted_at', '(κενό)')}")
                 print(f"     └─ Νέο : {pair['new'].get('submitted_at', '(κενό)')}")
     print("\n" + "="*80)
