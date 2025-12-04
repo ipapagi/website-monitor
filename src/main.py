@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+from urllib.parse import urljoin
 
 # Προσθήκη του src directory στο path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -232,6 +233,90 @@ def sanitize_party_name(raw_party):
     text = re.sub(r'\s{2,}', ' ', text)
     return text.strip()
 
+def extract_field(payload, field_name):
+    if not isinstance(payload, dict):
+        return None
+    
+    # Δοκίμασε απευθείας στο payload
+    if field_name in payload:
+        value = payload[field_name]
+        if isinstance(value, dict) and 'value' in value:
+            return str(value['value']).strip() if value['value'] not in (None, '') else None
+        elif value not in (None, ''):
+            return str(value).strip()
+    
+    # Αν data είναι λίστα, πάρε το πρώτο στοιχείο
+    data = payload.get('data')
+    if isinstance(data, list) and len(data) > 0:
+        data = data[0]
+    
+    if isinstance(data, dict):
+        if field_name in data:
+            value = data[field_name]
+            if isinstance(value, dict) and 'value' in value:
+                return str(value['value']).strip() if value['value'] not in (None, '') else None
+            elif value not in (None, ''):
+                return str(value).strip()
+    
+    # Δοκίμασε και στο record
+    record = payload.get('record')
+    if isinstance(record, dict) and field_name in record:
+        value = record[field_name]
+        if isinstance(value, dict) and 'value' in value:
+            return str(value['value']).strip() if value['value'] not in (None, '') else None
+        elif value not in (None, ''):
+            return str(value).strip()
+    
+    return None
+
+def fetch_protocol_number(monitor, doc_id):
+    if not doc_id:
+        return None
+    
+    session = getattr(monitor, 'session', None)
+    base_url = getattr(monitor, 'base_url', '')
+    jwt_token = getattr(monitor, 'jwt_token', None)
+    main_page_url = getattr(monitor, 'main_page_url', '')
+    
+    if not session or not base_url:
+        return None
+    
+    endpoint = f"/services/DataServices/fetchDataTableRecord/7/{doc_id}"
+    url = base_url.rstrip('/') + endpoint
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
+        'Accept': '*/*',
+        'Accept-Language': 'el',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': main_page_url or base_url,
+        'Connection': 'keep-alive',
+    }
+    
+    if jwt_token:
+        headers['Authorization'] = f'Bearer {jwt_token}'
+    
+    try:
+        response = session.get(url, headers=headers, timeout=15, verify=False)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:
+        print(f"⚠️  Αποτυχία ανάκτησης πρωτοκόλλου για DOCID {doc_id}: {exc}")
+        return None
+    
+    if not payload.get('success', False):
+        return None
+    
+    return extract_field(payload, 'W007_P_FLD61')
+
+def enrich_protocol_numbers(monitor, records):
+    for rec in records or []:
+        if not rec or rec.get('protocol_number'):
+            continue
+        protocol = fetch_protocol_number(monitor, rec.get('doc_id'))
+        if protocol:
+            rec['protocol_number'] = protocol
+
 def simplify_incoming_records(records):
     simplified = []
     for rec in records:
@@ -251,11 +336,14 @@ def simplify_incoming_records(records):
         party_raw = rec.get('W007_P_FLD13') or rec.get('party') or rec.get('customer') or rec.get('applicant') or ''
         party_name = sanitize_party_name(party_raw)
         doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
+        protocol_raw = rec.get('W007_P_FLD61')
+        protocol_number = str(protocol_raw).strip() if protocol_raw not in (None, '') else ''
         simplified.append({
             'case_id': case_id,
             'submitted_at': submitted_at,
             'party': party_name,
-            'doc_id': doc_id
+            'doc_id': doc_id,
+            'protocol_number': protocol_number
         })
     return simplified
 
@@ -287,10 +375,12 @@ def print_incoming_changes(changes, has_reference_snapshot, date_str, reference_
             for idx, rec in enumerate(changes['new'], 1):
                 party = (rec.get('party') or '').strip()
                 case_id = rec.get('case_id', 'N/A')
+                protocol_suffix = f"({rec.get('protocol_number')})" if rec.get('protocol_number') else ''
+                case_token = f"{case_id}{protocol_suffix}"
                 submitted = rec.get('submitted_at', 'N/A')
                 submitted_display = submitted.ljust(26)
                 party_display = party if party else '—'
-                print(f"{idx:>3}. [+] Υπόθεση {case_id:<8} │ Ημερ.: {submitted_display} │ Συναλλασσόμενος: {party_display}")
+                print(f"{idx:>3}. [+] Υπόθεση {case_token:<16} │ Ημερ.: {submitted_display} │ Συναλλασσόμενος: {party_display}")
         if changes['removed']:
             print(f"\n🗑️  Αφαιρέθηκαν ({len(changes['removed'])})")
             print("─"*80)
@@ -436,6 +526,9 @@ def main():
                     changes = compare_incoming_records(incoming_records, previous_snapshot)
                 else:
                     changes = {'new': [], 'removed': [], 'modified': []}
+                records_to_enrich = changes['new'] if has_reference_snapshot else incoming_records
+                if records_to_enrich:
+                    enrich_protocol_numbers(monitor, records_to_enrich)
                 print_incoming_changes(changes, has_reference_snapshot, today_str, prev_snapshot_date)
                 save_incoming_snapshot(today_str, incoming_records)
         
