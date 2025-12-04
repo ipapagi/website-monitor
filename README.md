@@ -58,6 +58,12 @@ PKM_PASSWORD=your_password
 python -m src.main --save-baseline
 ```
 
+### Έλεγχος Εισερχόμενων Αιτήσεων (Portal)
+Καταγράφει τις νέες αιτήσεις της ημέρας και συγκρίνει με το ημερήσιο snapshot:
+```bash
+python -m src.main --check-incoming
+```
+
 ### Σύγκριση με Baseline
 Συγκρίνει τις τρέχουσες διαδικασίες με το αποθηκευμένο baseline:
 ```bash

@@ -49,6 +49,7 @@ login_response.html
 
 # Data files (baseline αποθηκεύεται τοπικά)
 data/active_procedures_baseline.json
+data/incoming_requests/
 
 # Logs
 logs/*.log

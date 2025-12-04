@@ -10,6 +10,20 @@ import argparse
 import json
 from datetime import datetime
 
+INCOMING_DEFAULT_PARAMS = {
+    'isPoll': False,
+    'queryId': 6,
+    'queryOwner': 2,
+    'isCase': False,
+    'stateId': 'welcomeGrid-23_dashboard0',
+    'page': 1,
+    'start': 0,
+    'limit': 100
+}
+
+def get_project_root():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def get_baseline_path():
     """Επιστρέφει το path του baseline αρχείου"""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -165,6 +179,110 @@ def print_comparison_results(changes, baseline_data):
     
     print("\n" + "="*80)
 
+def get_incoming_snapshot_path(date_str):
+    project_root = get_project_root()
+    incoming_dir = os.path.join(project_root, 'data', 'incoming_requests')
+    os.makedirs(incoming_dir, exist_ok=True)
+    return os.path.join(incoming_dir, f'incoming_{date_str}.json')
+
+def load_incoming_snapshot(date_str):
+    path = get_incoming_snapshot_path(date_str)
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return None
+
+def save_incoming_snapshot(date_str, records):
+    payload = {
+        'date': date_str,
+        'count': len(records),
+        'records': records
+    }
+    with open(get_incoming_snapshot_path(date_str), 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+def list_incoming_snapshot_dates():
+    incoming_dir = os.path.join(get_project_root(), 'data', 'incoming_requests')
+    if not os.path.exists(incoming_dir):
+        return []
+    dates = []
+    for filename in os.listdir(incoming_dir):
+        if filename.startswith('incoming_') and filename.endswith('.json'):
+            date_part = filename[len('incoming_'):-5]
+            try:
+                dates.append(datetime.strptime(date_part, "%Y-%m-%d").date())
+            except ValueError:
+                continue
+    return sorted(dates)
+
+def load_previous_incoming_snapshot(current_date_str):
+    current_date = datetime.strptime(current_date_str, "%Y-%m-%d").date()
+    for snapshot_date in reversed(list_incoming_snapshot_dates()):
+        if snapshot_date < current_date:
+            snapshot_str = snapshot_date.strftime("%Y-%m-%d")
+            return snapshot_str, load_incoming_snapshot(snapshot_str)
+    return None, None
+
+def simplify_incoming_records(records):
+    simplified = []
+    for rec in records:
+        case_id = str(rec.get('DOCID') or rec.get('docid') or rec.get('CASE_ID') or '').strip()
+        if not case_id:
+            continue
+        submitted_at = rec.get('DATE_INSERTED_ISO') or rec.get('W003_DATA_INSERT') or rec.get('DATE_INSERT') or rec.get('SUBMIT_DATE') or ''
+        simplified.append({'case_id': case_id, 'submitted_at': submitted_at})
+    return simplified
+
+def compare_incoming_records(current, previous):
+    previous_records = previous.get('records', []) if previous else []
+    prev_dict = {r['case_id']: r for r in previous_records if r.get('case_id')}
+    curr_dict = {r['case_id']: r for r in current if r.get('case_id')}
+    new_docs = [r for cid, r in curr_dict.items() if cid not in prev_dict]
+    removed_docs = [r for cid, r in prev_dict.items() if cid not in curr_dict]
+    modified = []
+    for cid, record in curr_dict.items():
+        if cid in prev_dict and record != prev_dict[cid]:
+            modified.append({'old': prev_dict[cid], 'new': record})
+    return {'new': new_docs, 'removed': removed_docs, 'modified': modified}
+
+def print_incoming_changes(changes, has_reference_snapshot, date_str, reference_date_str=None):
+    print("\n" + "="*80)
+    print(f"📥 ΕΙΣΕΡΧΟΜΕΝΕΣ ΑΙΤΗΣΕΙΣ ({date_str})".center(80))
+    print("="*80)
+    if not has_reference_snapshot:
+        print("ℹ️  Δεν βρέθηκε προηγούμενο snapshot. Δημιουργήθηκε baseline για μελλοντικές συγκρίσεις.")
+    else:
+        print(f"🔁 Σύγκριση με snapshot {reference_date_str}")
+        if not any(changes.values()):
+            print("✅ Καμία αλλαγή σε σχέση με το αποθηκευμένο snapshot.")
+        if changes['new']:
+            print(f"\n🆕 Νέες αιτήσεις ({len(changes['new'])})")
+            print("─"*80)
+            for idx, rec in enumerate(changes['new'], 1):
+                print(f"{idx:3}. [+] Υπόθεση {rec.get('case_id', 'N/A')} – Ημερ.: {rec.get('submitted_at', 'N/A')}")
+        if changes['removed']:
+            print(f"\n🗑️  Αφαιρέθηκαν ({len(changes['removed'])})")
+            print("─"*80)
+            for idx, rec in enumerate(changes['removed'], 1):
+                print(f"{idx:3}. [-] Υπόθεση {rec.get('case_id', 'N/A')} – Ημερ.: {rec.get('submitted_at', 'N/A')}")
+        if changes['modified']:
+            print(f"\n🔄 Τροποποιήθηκαν ({len(changes['modified'])})")
+            print("─"*80)
+            for idx, pair in enumerate(changes['modified'], 1):
+                print(f"{idx:3}. [~] Υπόθεση {pair['new'].get('case_id', 'N/A')}")
+                print(f"     └─ Παλαιό: {pair['old'].get('submitted_at', '(κενό)')}")
+                print(f"     └─ Νέο : {pair['new'].get('submitted_at', '(κενό)')}")
+    print("\n" + "="*80)
+
+def fetch_incoming_records(monitor, incoming_params):
+    params = incoming_params.copy()
+    original_params = monitor.api_params.copy()
+    try:
+        monitor.api_params = params
+        return monitor.fetch_page()
+    finally:
+        monitor.api_params = original_params
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -189,6 +307,11 @@ def main():
         '--no-monitor', 
         action='store_true',
         help='Δεν ξεκινά continuous monitoring'
+    )
+    parser.add_argument(
+        '--check-incoming',
+        action='store_true',
+        help='Ελέγχει τις εισερχόμενες αιτήσεις (portal) και αποθηκεύει ημερήσιο snapshot'
     )
     
     args = parser.parse_args()
@@ -218,7 +341,7 @@ def main():
     )
     
     # Αν χρειάζεται σύγκριση ή αποθήκευση, πρέπει να πάρουμε τα δεδομένα
-    if args.save_baseline or args.compare or args.list_active:
+    if args.save_baseline or args.compare or args.list_active or args.check_incoming:
         print("\n🔄 Ανάκτηση δεδομένων...")
         
         # Login και fetch
@@ -264,8 +387,26 @@ def main():
                 print("\n⚠️  Δεν βρέθηκε baseline!")
                 print("💡 Τρέξε πρώτα με --save-baseline για να δημιουργήσεις ένα.")
         
+        # Έλεγχος εισερχόμενων αιτήσεων
+        if args.check_incoming:
+            incoming_params = config.get('incoming_api_params', INCOMING_DEFAULT_PARAMS).copy()
+            json_data_incoming = fetch_incoming_records(monitor, incoming_params)
+            if not json_data_incoming or not json_data_incoming.get('success', False):
+                print("\n⚠️  Αποτυχία λήψης εισερχόμενων αιτήσεων.")
+            else:
+                incoming_records = simplify_incoming_records(json_data_incoming.get('data', []))
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                prev_snapshot_date, previous_snapshot = load_previous_incoming_snapshot(today_str)
+                has_reference_snapshot = previous_snapshot is not None
+                if has_reference_snapshot:
+                    changes = compare_incoming_records(incoming_records, previous_snapshot)
+                else:
+                    changes = {'new': [], 'removed': [], 'modified': []}
+                print_incoming_changes(changes, has_reference_snapshot, today_str, prev_snapshot_date)
+                save_incoming_snapshot(today_str, incoming_records)
+        
         # Αν --no-monitor, τερμάτισε
-        if args.no_monitor or args.save_baseline or args.compare or args.list_active:
+        if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming:
             sys.exit(0)
     
     # Start monitoring
