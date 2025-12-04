@@ -195,6 +195,11 @@ def main():
     
     args = parser.parse_args()
     
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("\n" + "="*80)
+    print(f"🚀 Εκκίνηση PKM Website Monitor - {current_time}".center(80))
+    print("="*80)
+    
     # Get project root directory
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path = os.path.join(project_root, 'config', 'config.yaml')
