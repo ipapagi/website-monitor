@@ -39,7 +39,7 @@ def extract_field(payload, field_name):
 def fetch_record_details(monitor, doc_id):
     """Ανακτά λεπτομέρειες εγγραφής"""
     if not doc_id:
-        return None, None, None, None
+        return None, None, None, None, None
     
     session = getattr(monitor, 'session', None)
     base_url = getattr(monitor, 'base_url', '')
@@ -47,7 +47,7 @@ def fetch_record_details(monitor, doc_id):
     main_page_url = getattr(monitor, 'main_page_url', '')
     
     if not session or not base_url:
-        return None, None, None, None
+        return None, None, None, None, None
     
     url = base_url.rstrip('/') + f"/services/DataServices/fetchDataTableRecord/7/{doc_id}"
     headers = {
@@ -66,15 +66,16 @@ def fetch_record_details(monitor, doc_id):
         payload = response.json()
     except Exception as exc:
         print(f"⚠️  Αποτυχία ανάκτησης στοιχείων για DOCID {doc_id}: {exc}")
-        return None, None, None, None
+        return None, None, None, None, None
     
     if not payload.get('success', False):
-        return None, None, None, None
+        return None, None, None, None, None
     
-    return (extract_field(payload, 'W007_P_FLD61'),
-            extract_field(payload, 'W007_P_FLD23'),
-            extract_field(payload, 'W007_P_FLD17'),
-            extract_field(payload, 'W003_P_FLD75'))
+    return (extract_field(payload, 'W007_P_FLD61'),      # protocol
+            extract_field(payload, 'W007_P_FLD23'),      # procedure
+            extract_field(payload, 'W007_P_FLD17'),      # directory
+            extract_field(payload, 'W003_P_FLD75'),      # procedure_id
+            extract_field(payload, 'W007_P_FLD30'))      # document_category
 
 def enrich_record_details(monitor, records, procedures_cache=None):
     """Εμπλουτίζει τις εγγραφές με πρωτόκολλο, διαδικασία και διεύθυνση"""
@@ -85,13 +86,15 @@ def enrich_record_details(monitor, records, procedures_cache=None):
     for rec in records or []:
         if not rec or not rec.get('doc_id'):
             continue
-        if rec.get('protocol_number') and rec.get('procedure') and rec.get('directory'):
+        if rec.get('protocol_number') and rec.get('procedure') and rec.get('directory') and rec.get('document_category'):
             continue
         
-        protocol, procedure, directory, procedure_id = fetch_record_details(monitor, rec.get('doc_id'))
+        protocol, procedure, directory, procedure_id, doc_category = fetch_record_details(monitor, rec.get('doc_id'))
         
         if protocol and not rec.get('protocol_number'):
             rec['protocol_number'] = protocol
+        if doc_category and not rec.get('document_category'):
+            rec['document_category'] = doc_category
         if procedure and not rec.get('procedure'):
             rec['procedure'] = procedure
             if procedure not in procedures_cache:

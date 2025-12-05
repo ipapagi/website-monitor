@@ -93,10 +93,12 @@ def simplify_incoming_records(records):
         party_raw = (rec.get('W007_P_FLD13') or rec.get('party') or
                     rec.get('customer') or rec.get('applicant') or '')
         doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
+        doc_category = rec.get('W007_P_FLD30', '')  # Κατηγορία Εγγράφου
         simplified.append({
             'case_id': case_id, 'submitted_at': submitted_at,
             'party': sanitize_party_name(party_raw), 'doc_id': doc_id,
-            'protocol_number': '', 'procedure': '', 'directory': ''
+            'protocol_number': '', 'procedure': '', 'directory': '',
+            'document_category': doc_category
         })
     return simplified
 

@@ -101,7 +101,7 @@ def handle_incoming(args, monitor, config):
         for rec in records:
             if rec.get('case_id') in prev_dict:
                 prev = prev_dict[rec['case_id']]
-                for k in ['protocol_number', 'procedure', 'directory']:
+                for k in ['protocol_number', 'procedure', 'directory', 'document_category']:
                     if prev.get(k) and not rec.get(k):
                         rec[k] = prev[k]
         changes = compare_incoming_records(records, prev_snap)
