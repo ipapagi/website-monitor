@@ -136,12 +136,15 @@ def _print_incoming_record_line(idx, rec, prefix=''):
     case_id = rec.get('case_id', 'N/A')
     protocol = rec.get('protocol_number', '')
     doc_cat = rec.get('document_category', '')
-    # Συνδυασμός: Υπόθεση 919103(36796) - Αίτηση
-    proto_part = f"({protocol})" if protocol else ""
-    cat_part = f" - {doc_cat}" if doc_cat else ""
     submitted = rec.get('submitted_at', 'N/A')[:16]
     prefix_str = f"{prefix} " if prefix else "[+] "
-    print(f"{idx:>3}. {prefix_str}Υπόθεση {case_id}{proto_part}{cat_part:<20} │ {submitted}")
+    
+    # Σταθερό πλάτος: case_id+protocol = 20 χαρακτήρες, doc_cat = 25
+    case_proto = f"{case_id}({protocol})" if protocol else f"{case_id}"
+    case_proto_padded = f"{case_proto:<20}"
+    cat_part = f"- {doc_cat:<25}" if doc_cat else " "*27
+    
+    print(f"{idx:>3}. {prefix_str}Υπόθεση {case_proto_padded} {cat_part} │ {submitted}")
     if rec.get('procedure'):
         print(f"         📋 Διαδικασία: {rec['procedure']}")
     if rec.get('directory'):
@@ -197,11 +200,15 @@ def _print_analysis_record(idx, rec, icon):
     case_id = rec.get('case_id', 'N/A')
     protocol = rec.get('protocol_number', '')
     doc_cat = rec.get('document_category', '')
-    proto_part = f"({protocol})" if protocol else ""
-    cat_part = f" - {doc_cat}" if doc_cat else ""
     submitted = rec.get('submitted_at', 'N/A')[:16]
     party = rec.get('party', '—')
     procedure = rec.get('procedure', '')
-    print(f"{idx:>3}. {icon} [{case_id}]{proto_part}{cat_part} {submitted} - {party}")
+    
+    # Σταθερό πλάτος: case_id+protocol = 20 χαρακτήρες, doc_cat = 25
+    case_proto = f"{case_id}({protocol})" if protocol else f"{case_id}"
+    case_proto_padded = f"{case_proto:<20}"
+    cat_part = f"- {doc_cat:<25}" if doc_cat else " "*27
+    
+    print(f"{idx:>3}. {icon} [{case_proto_padded}] {cat_part} │ {submitted} │ {party}")
     if procedure:
-        print(f"         📋 {procedure[:60]}{'...' if len(procedure) > 60 else ''}")
+        print(f"         📋 {procedure[:70]}{'...' if len(procedure) > 70 else ''}")
