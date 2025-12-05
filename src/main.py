@@ -31,6 +31,11 @@ def get_baseline_path():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(project_root, 'data', 'active_procedures_baseline.json')
 
+def get_all_procedures_baseline_path():
+    """Επιστρέφει το path του baseline αρχείου όλων των διαδικασιών"""
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(project_root, 'data', 'all_procedures_baseline.json')
+
 def save_baseline(active_procedures):
     """Αποθηκεύει τις ενεργές διαδικασίες ως baseline"""
     baseline_path = get_baseline_path()
@@ -51,9 +56,37 @@ def save_baseline(active_procedures):
     print(f"📋 Ενεργές διαδικασίες: {len(active_procedures)}")
     return baseline_path
 
+def save_all_procedures_baseline(all_procedures):
+    """Αποθηκεύει όλες τις διαδικασίες ως baseline"""
+    baseline_path = get_all_procedures_baseline_path()
+    os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
+    
+    baseline_data = {
+        'timestamp': datetime.now().isoformat(),
+        'count': len(all_procedures),
+        'procedures': all_procedures
+    }
+    
+    with open(baseline_path, 'w', encoding='utf-8') as f:
+        json.dump(baseline_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n💾 Baseline όλων των διαδικασιών αποθηκεύτηκε: {baseline_path}")
+    print(f"📋 Σύνολο διαδικασιών: {len(all_procedures)}")
+    return baseline_path
+
 def load_baseline():
     """Φορτώνει το baseline αν υπάρχει"""
     baseline_path = get_baseline_path()
+    
+    if not os.path.exists(baseline_path):
+        return None
+    
+    with open(baseline_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def load_all_procedures_baseline():
+    """Φορτώνει το baseline όλων των διαδικασιών αν υπάρχει"""
+    baseline_path = get_all_procedures_baseline_path()
     
     if not os.path.exists(baseline_path):
         return None
@@ -107,6 +140,52 @@ def compare_with_baseline(current_procedures, baseline_data):
                 })
     
     # Εύρεση διαδικασιών που αφαιρέθηκαν
+    for docid, proc in baseline_dict.items():
+        if docid not in current_dict:
+            changes['removed'].append(proc)
+    
+    return changes
+
+def compare_all_procedures_with_baseline(current_procedures, baseline_data):
+    """Συγκρίνει όλες τις διαδικασίες με το baseline"""
+    baseline_procedures = baseline_data.get('procedures', [])
+    
+    baseline_dict = {p['docid']: p for p in baseline_procedures}
+    current_dict = {p['docid']: p for p in current_procedures}
+    
+    changes = {
+        'new': [],
+        'removed': [],
+        'activated': [],
+        'deactivated': [],
+        'modified': []
+    }
+    
+    for docid, proc in current_dict.items():
+        if docid not in baseline_dict:
+            changes['new'].append(proc)
+        else:
+            old_proc = baseline_dict[docid]
+            # Έλεγχος αν άλλαξε η κατάσταση ενεργής
+            if old_proc.get('ενεργή') != proc.get('ενεργή'):
+                if proc.get('ενεργή') == 'ΝΑΙ':
+                    changes['activated'].append({'old': old_proc, 'new': proc})
+                else:
+                    changes['deactivated'].append({'old': old_proc, 'new': proc})
+            elif old_proc != proc:
+                field_changes = {}
+                for key in set(list(proc.keys()) + list(old_proc.keys())):
+                    if old_proc.get(key) != proc.get(key):
+                        field_changes[key] = {
+                            'old': old_proc.get(key, ''),
+                            'new': proc.get(key, '')
+                        }
+                changes['modified'].append({
+                    'old': old_proc,
+                    'new': proc,
+                    'field_changes': field_changes
+                })
+    
     for docid, proc in baseline_dict.items():
         if docid not in current_dict:
             changes['removed'].append(proc)
@@ -178,6 +257,77 @@ def print_comparison_results(changes, baseline_data):
     
     if not has_changes:
         print("\n✅ Καμία αλλαγή από το baseline!")
+    
+    print("\n" + "="*80)
+
+def print_all_procedures_comparison(changes, baseline_data):
+    """Εμφανίζει τα αποτελέσματα σύγκρισης όλων των διαδικασιών"""
+    baseline_time = baseline_data.get('timestamp', 'Άγνωστο')
+    baseline_count = baseline_data.get('count', 0)
+    
+    print("\n" + "="*80)
+    print("📊 ΣΥΓΚΡΙΣΗ ΟΛΩΝ ΤΩΝ ΔΙΑΔΙΚΑΣΙΩΝ ΜΕ BASELINE".center(80))
+    print("="*80)
+    print(f"📅 Baseline από: {baseline_time}")
+    print(f"📋 Διαδικασίες στο baseline: {baseline_count}")
+    print("="*80)
+    
+    has_changes = False
+    
+    if changes['new']:
+        has_changes = True
+        print(f"\n🆕 ΝΕΕΣ ΔΙΑΔΙΚΑΣΙΕΣ ({len(changes['new'])})")
+        print("─" * 80)
+        for idx, proc in enumerate(changes['new'], 1):
+            status = "✅" if proc.get('ενεργή') == 'ΝΑΙ' else "❌"
+            print(f"{idx:3}. {status} [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+    
+    if changes['activated']:
+        has_changes = True
+        print(f"\n🔓 ΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['activated'])})")
+        print("─" * 80)
+        for idx, item in enumerate(changes['activated'], 1):
+            proc = item['new']
+            print(f"{idx:3}. ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            print(f"     └─ Ενεργή: ΟΧΙ → ΝΑΙ")
+    
+    if changes['deactivated']:
+        has_changes = True
+        print(f"\n🔒 ΑΠΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['deactivated'])})")
+        print("─" * 80)
+        for idx, item in enumerate(changes['deactivated'], 1):
+            proc = item['new']
+            print(f"{idx:3}. ❌ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            print(f"     └─ Ενεργή: ΝΑΙ → ΟΧΙ")
+    
+    if changes['removed']:
+        has_changes = True
+        print(f"\n🗑️  ΑΦΑΙΡΕΘΗΚΑΝ ({len(changes['removed'])})")
+        print("─" * 80)
+        for idx, proc in enumerate(changes['removed'], 1):
+            print(f"{idx:3}. ⚠️  [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+    
+    if changes['modified']:
+        has_changes = True
+        print(f"\n🔄 ΤΡΟΠΟΠΟΙΗΘΗΚΑΝ ({len(changes['modified'])})")
+        print("─" * 80)
+        for idx, mod in enumerate(changes['modified'], 1):
+            proc = mod['new']
+            status = "✅" if proc.get('ενεργή') == 'ΝΑΙ' else "❌"
+            print(f"{idx:3}. {status} [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            field_changes = mod.get('field_changes', {})
+            for field, vals in field_changes.items():
+                if field not in ['docid', '_raw']:
+                    old_val = vals['old'] if vals['old'] else '(κενό)'
+                    new_val = vals['new'] if vals['new'] else '(κενό)'
+                    if len(str(old_val)) > 40:
+                        old_val = str(old_val)[:40] + '...'
+                    if len(str(new_val)) > 40:
+                        new_val = str(new_val)[:40] + '...'
+                    print(f"     └─ {field}: {old_val} → {new_val}")
+    
+    if not has_changes:
+        print("\n✅ Καμία αλλαγή στις διαδικασίες!")
     
     print("\n" + "="*80)
 
@@ -573,6 +723,20 @@ def update_procedures_cache_from_procedures(procedures):
     
     return procedures_cache
 
+def check_and_update_all_procedures_baseline(all_procedures):
+    """Ελέγχει για αλλαγές στις διαδικασίες και ενημερώνει το baseline"""
+    baseline_data = load_all_procedures_baseline()
+    
+    if baseline_data:
+        changes = compare_all_procedures_with_baseline(all_procedures, baseline_data)
+        has_changes = print_all_procedures_comparison(changes, baseline_data)
+        
+        if has_changes:
+            save_all_procedures_baseline(all_procedures)
+    else:
+        print("\nℹ️  Δεν βρέθηκε baseline διαδικασιών. Δημιουργείται...")
+        save_all_procedures_baseline(all_procedures)
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -592,6 +756,21 @@ def main():
         '--list-active', 
         action='store_true',
         help='Εμφανίζει τις ενεργές διαδικασίες'
+    )
+    parser.add_argument(
+        '--save-all-baseline',
+        action='store_true',
+        help='Αποθηκεύει όλες τις διαδικασίες (ενεργές και μη) ως baseline'
+    )
+    parser.add_argument(
+        '--compare-all',
+        action='store_true',
+        help='Συγκρίνει όλες τις διαδικασίες με το baseline'
+    )
+    parser.add_argument(
+        '--list-all',
+        action='store_true',
+        help='Εμφανίζει όλες τις διαδικασίες (ενεργές και μη)'
     )
     parser.add_argument(
         '--no-monitor', 
@@ -637,7 +816,7 @@ def main():
     )
     
     # Αν χρειάζεται σύγκριση ή αποθήκευση, πρέπει να πάρουμε τα δεδομένα
-    if args.save_baseline or args.compare or args.list_active or args.check_incoming_portal:
+    if args.save_baseline or args.compare or args.list_active or args.check_incoming_portal or args.save_all_baseline or args.compare_all or args.list_all:
         print("\n🔄 Ανάκτηση δεδομένων...")
         
         # Login και fetch
@@ -656,12 +835,14 @@ def main():
         
         all_procedures = monitor.parse_table_data(json_data)
         active_procedures = [p for p in all_procedures if p.get('ενεργή') == 'ΝΑΙ']
+        inactive_procedures = [p for p in all_procedures if p.get('ενεργή') != 'ΝΑΙ']
         
         # Ενημέρωση procedures_cache με όλες τις διαδικασίες
         update_procedures_cache_from_procedures(all_procedures)
         
         print(f"\n📊 Σύνολο διαδικασιών: {len(all_procedures)}")
         print(f"✅ Ενεργές διαδικασίες: {len(active_procedures)}")
+        print(f"❌ Ανενεργές διαδικασίες: {len(inactive_procedures)}")
         
         # Εμφάνιση ενεργών
         if args.list_active:
@@ -672,11 +853,25 @@ def main():
                 print(f"{i:3}. [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
             print("="*80)
         
-        # Αποθήκευση baseline
+        # Εμφάνιση όλων
+        if args.list_all:
+            print("\n" + "="*80)
+            print("📋 ΟΛΕΣ ΟΙ ΔΙΑΔΙΚΑΣΙΕΣ".center(80))
+            print("="*80)
+            for i, proc in enumerate(all_procedures, 1):
+                status = "✅" if proc.get('ενεργή') == 'ΝΑΙ' else "❌"
+                print(f"{i:3}. {status} [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+            print("="*80)
+        
+        # Αποθήκευση baseline ενεργών
         if args.save_baseline:
             save_baseline(active_procedures)
         
-        # Σύγκριση με baseline
+        # Αποθήκευση baseline όλων
+        if args.save_all_baseline:
+            save_all_procedures_baseline(all_procedures)
+        
+        # Σύγκριση ενεργών με baseline
         if args.compare:
             baseline_data = load_baseline()
             if baseline_data:
@@ -685,6 +880,16 @@ def main():
             else:
                 print("\n⚠️  Δεν βρέθηκε baseline!")
                 print("💡 Τρέξε πρώτα με --save-baseline για να δημιουργήσεις ένα.")
+        
+        # Σύγκριση όλων με baseline
+        if args.compare_all:
+            baseline_data = load_all_procedures_baseline()
+            if baseline_data:
+                changes = compare_all_procedures_with_baseline(all_procedures, baseline_data)
+                print_all_procedures_comparison(changes, baseline_data)
+            else:
+                print("\n⚠️  Δεν βρέθηκε baseline όλων των διαδικασιών!")
+                print("💡 Τρέξε πρώτα με --save-all-baseline για να δημιουργήσεις ένα.")
         
         # Έλεγχος εισερχόμενων αιτήσεων
         if args.check_incoming_portal:
@@ -723,7 +928,7 @@ def main():
                 save_incoming_snapshot(today_str, incoming_records)
         
         # Αν --no-monitor, τερμάτισε
-        if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming_portal:
+        if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming_portal or args.save_all_baseline or args.compare_all or args.list_all:
             sys.exit(0)
     
     # Σύγκριση snapshot συγκεκριμένης ημερομηνίας
