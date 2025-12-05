@@ -76,6 +76,8 @@ def handle_procedures(args, all_procedures, active_procedures):
 
 def handle_incoming(args, monitor, config):
     """Χειρίζεται τις εντολές για εισερχόμενες αιτήσεις"""
+    from incoming import merge_with_previous_snapshot  # Προσθήκη import
+    
     data = fetch_incoming_records(monitor, config.get('incoming_api_params', INCOMING_DEFAULT_PARAMS).copy())
     if not data or not data.get('success'):
         print("\n⚠️  Αποτυχία λήψης εισερχόμενων αιτήσεων.")
@@ -85,6 +87,10 @@ def handle_incoming(args, monitor, config):
     today = datetime.now().strftime("%Y-%m-%d")
     prev_date, prev_snap = load_previous_incoming_snapshot(today)
     has_prev = prev_snap is not None
+    
+    # Συγχώνευση με προηγούμενο snapshot για να μην χαθούν παλιές εγγραφές
+    if has_prev:
+        records = merge_with_previous_snapshot(records, prev_snap)
     
     if has_prev:
         prev_dict = {r['case_id']: r for r in prev_snap.get('records', []) if r.get('case_id')}

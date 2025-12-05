@@ -35,3 +35,13 @@ check_interval: 300  # seconds (5 minutes)
 # Εναλλακτικά: Session Cookies
 session_cookies:
   JSESSIONID: ""
+
+incoming_api_params:
+  isPoll: false
+  queryId: 6
+  queryOwner: 2
+  isCase: false
+  stateId: 'welcomeGrid-23_dashboard0'
+  page: 1
+  start: 0
+  limit: 200  # Αύξησε από 100 σε 200 ή περισσότερο

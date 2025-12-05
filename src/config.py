@@ -35,5 +35,5 @@ INCOMING_DEFAULT_PARAMS = {
     'stateId': 'welcomeGrid-23_dashboard0',
     'page': 1,
     'start': 0,
-    'limit': 100
+    'limit': 200  # Βασικό όριο, θα γίνει pagination αν χρειαστεί
 }
