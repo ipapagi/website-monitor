@@ -386,13 +386,17 @@ def enrich_record_details(monitor, records, procedures_cache=None):
         if not doc_id:
             continue
         
-        # Ανάκτηση στοιχείων από API για κάθε εγγραφή
+        # Αν έχουμε ήδη όλα τα στοιχεία, συνέχισε (για υπάρχουσες εγγραφές από snapshot)
+        if rec.get('protocol_number') and rec.get('procedure') and rec.get('directory'):
+            continue
+        
+        # Ανάκτηση στοιχείων από API
         protocol, procedure, directory = fetch_record_details(monitor, doc_id)
         
-        if protocol:
+        if protocol and not rec.get('protocol_number'):
             rec['protocol_number'] = protocol
         
-        if procedure:
+        if procedure and not rec.get('procedure'):
             rec['procedure'] = procedure
             # Αποθήκευση στο cache
             if procedure not in procedures_cache:
@@ -402,7 +406,7 @@ def enrich_record_details(monitor, records, procedures_cache=None):
                 }
                 cache_updated = True
         
-        if directory:
+        if directory and not rec.get('directory'):
             rec['directory'] = directory
             # Ενημέρωση cache με directory για τη διαδικασία
             if procedure and procedure in procedures_cache:
@@ -440,7 +444,7 @@ def simplify_incoming_records(records):
         party_raw = rec.get('W007_P_FLD13') or rec.get('party') or rec.get('customer') or rec.get('applicant') or ''
         party_name = sanitize_party_name(party_raw)
         doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
-        # Δεν διαβάζουμε procedure/directory από το Query API - θα τα πάρουμε από το Record Details API
+        # Τα procedure/directory θα τα πάρουμε από το Record Details API (enrich_record_details)
         simplified.append({
             'case_id': case_id,
             'submitted_at': submitted_at,
@@ -641,12 +645,28 @@ def main():
                 today_str = datetime.now().strftime("%Y-%m-%d")
                 prev_snapshot_date, previous_snapshot = load_previous_incoming_snapshot(today_str)
                 has_reference_snapshot = previous_snapshot is not None
+                
+                # Αντιγραφή στοιχείων από προηγούμενο snapshot για υπάρχουσες εγγραφές
                 if has_reference_snapshot:
+                    prev_records_dict = {r['case_id']: r for r in previous_snapshot.get('records', []) if r.get('case_id')}
+                    for rec in incoming_records:
+                        case_id = rec.get('case_id')
+                        if case_id in prev_records_dict:
+                            prev_rec = prev_records_dict[case_id]
+                            if prev_rec.get('protocol_number'):
+                                rec['protocol_number'] = prev_rec['protocol_number']
+                            if prev_rec.get('procedure'):
+                                rec['procedure'] = prev_rec['procedure']
+                            if prev_rec.get('directory'):
+                                rec['directory'] = prev_rec['directory']
                     changes = compare_incoming_records(incoming_records, previous_snapshot)
                 else:
                     changes = {'new': [], 'removed': [], 'modified': []}
-                # Εμπλουτισμός όλων των εγγραφών με στοιχεία από Record Details API
-                enrich_record_details(monitor, incoming_records)
+                
+                # Εμπλουτισμός μόνο των νέων εγγραφών (οι υπάρχουσες έχουν ήδη στοιχεία)
+                records_to_enrich = changes['new'] if has_reference_snapshot else incoming_records
+                if records_to_enrich:
+                    enrich_record_details(monitor, records_to_enrich)
                 print_incoming_changes(changes, has_reference_snapshot, today_str, prev_snapshot_date)
                 save_incoming_snapshot(today_str, incoming_records)
         
