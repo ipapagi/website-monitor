@@ -187,6 +187,23 @@ def get_incoming_snapshot_path(date_str):
     os.makedirs(incoming_dir, exist_ok=True)
     return os.path.join(incoming_dir, f'incoming_{date_str}.json')
 
+def get_procedures_cache_path():
+    project_root = get_project_root()
+    return os.path.join(project_root, 'data', 'procedures_cache.json')
+
+def load_procedures_cache():
+    path = get_procedures_cache_path()
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_procedures_cache(cache):
+    path = get_procedures_cache_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
 def load_incoming_snapshot(date_str):
     path = get_incoming_snapshot_path(date_str)
     if os.path.exists(path):
@@ -309,13 +326,100 @@ def fetch_protocol_number(monitor, doc_id):
     
     return extract_field(payload, 'W007_P_FLD61')
 
-def enrich_protocol_numbers(monitor, records):
+def fetch_record_details(monitor, doc_id):
+    """Ανακτά λεπτομέρειες εγγραφής: πρωτόκολλο, διαδικασία, διεύθυνση"""
+    if not doc_id:
+        return None, None, None
+    
+    session = getattr(monitor, 'session', None)
+    base_url = getattr(monitor, 'base_url', '')
+    jwt_token = getattr(monitor, 'jwt_token', None)
+    main_page_url = getattr(monitor, 'main_page_url', '')
+    
+    if not session or not base_url:
+        return None, None, None
+    
+    endpoint = f"/services/DataServices/fetchDataTableRecord/7/{doc_id}"
+    url = base_url.rstrip('/') + endpoint
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
+        'Accept': '*/*',
+        'Accept-Language': 'el',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': main_page_url or base_url,
+        'Connection': 'keep-alive',
+    }
+    
+    if jwt_token:
+        headers['Authorization'] = f'Bearer {jwt_token}'
+    
+    try:
+        response = session.get(url, headers=headers, timeout=15, verify=False)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:
+        print(f"⚠️  Αποτυχία ανάκτησης στοιχείων για DOCID {doc_id}: {exc}")
+        return None, None, None
+    
+    if not payload.get('success', False):
+        return None, None, None
+    
+    protocol = extract_field(payload, 'W007_P_FLD61')
+    procedure = extract_field(payload, 'W007_P_FLD23')
+    directory = extract_field(payload, 'W007_P_FLD17')
+    
+    return protocol, procedure, directory
+
+def enrich_record_details(monitor, records, procedures_cache=None):
+    """Εμπλουτίζει τις εγγραφές με πρωτόκολλο, διαδικασία και διεύθυνση"""
+    if procedures_cache is None:
+        procedures_cache = load_procedures_cache()
+    
+    cache_updated = False
+    
     for rec in records or []:
-        if not rec or rec.get('protocol_number'):
+        if not rec:
             continue
-        protocol = fetch_protocol_number(monitor, rec.get('doc_id'))
+        
+        doc_id = rec.get('doc_id')
+        if not doc_id:
+            continue
+        
+        # Ανάκτηση στοιχείων από API για κάθε εγγραφή
+        protocol, procedure, directory = fetch_record_details(monitor, doc_id)
+        
         if protocol:
             rec['protocol_number'] = protocol
+        
+        if procedure:
+            rec['procedure'] = procedure
+            # Αποθήκευση στο cache
+            if procedure not in procedures_cache:
+                procedures_cache[procedure] = {
+                    'title': procedure,
+                    'first_seen': datetime.now().isoformat()
+                }
+                cache_updated = True
+        
+        if directory:
+            rec['directory'] = directory
+            # Ενημέρωση cache με directory για τη διαδικασία
+            if procedure and procedure in procedures_cache:
+                if 'directories' not in procedures_cache[procedure]:
+                    procedures_cache[procedure]['directories'] = []
+                if directory not in procedures_cache[procedure]['directories']:
+                    procedures_cache[procedure]['directories'].append(directory)
+                    cache_updated = True
+    
+    if cache_updated:
+        save_procedures_cache(procedures_cache)
+    
+    return procedures_cache
+
+def enrich_protocol_numbers(monitor, records):
+    # Αντικαταστάθηκε από enrich_record_details
+    enrich_record_details(monitor, records)
 
 def simplify_incoming_records(records):
     simplified = []
@@ -336,14 +440,15 @@ def simplify_incoming_records(records):
         party_raw = rec.get('W007_P_FLD13') or rec.get('party') or rec.get('customer') or rec.get('applicant') or ''
         party_name = sanitize_party_name(party_raw)
         doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
-        protocol_raw = rec.get('W007_P_FLD61')
-        protocol_number = str(protocol_raw).strip() if protocol_raw not in (None, '') else ''
+        # Δεν διαβάζουμε procedure/directory από το Query API - θα τα πάρουμε από το Record Details API
         simplified.append({
             'case_id': case_id,
             'submitted_at': submitted_at,
             'party': party_name,
             'doc_id': doc_id,
-            'protocol_number': protocol_number
+            'protocol_number': '',
+            'procedure': '',
+            'directory': ''
         })
     return simplified
 
@@ -371,16 +476,24 @@ def print_incoming_changes(changes, has_reference_snapshot, date_str, reference_
             print("✅ Καμία αλλαγή σε σχέση με το αποθηκευμένο snapshot.")
         if changes['new']:
             print(f"\n🆕 Νέες αιτήσεις ({len(changes['new'])})")
-            print("─"*80)
+            print("─"*100)
             for idx, rec in enumerate(changes['new'], 1):
                 party = (rec.get('party') or '').strip()
                 case_id = rec.get('case_id', 'N/A')
                 protocol_suffix = f"({rec.get('protocol_number')})" if rec.get('protocol_number') else ''
                 case_token = f"{case_id}{protocol_suffix}"
                 submitted = rec.get('submitted_at', 'N/A')
-                submitted_display = submitted.ljust(26)
+                submitted_short = submitted[:16] if len(submitted) > 16 else submitted
                 party_display = party if party else '—'
-                print(f"{idx:>3}. [+] Υπόθεση {case_token:<16} │ Ημερ.: {submitted_display} │ Συναλλασσόμενος: {party_display}")
+                procedure = rec.get('procedure', '') or ''
+                directory = rec.get('directory', '') or ''
+                
+                print(f"{idx:>3}. [+] Υπόθεση {case_token:<18} │ {submitted_short}")
+                if procedure:
+                    print(f"         📋 Διαδικασία: {procedure}")
+                if directory:
+                    print(f"         🏢 Δ/νση: {directory}")
+                print(f"         👤 Συναλλασσόμενος: {party_display}")
         if changes['removed']:
             print(f"\n🗑️  Αφαιρέθηκαν ({len(changes['removed'])})")
             print("─"*80)
@@ -460,7 +573,7 @@ def main():
     
     # Create monitor instance
     monitor = PKMMonitor(
-        base_url=config.get('base_url', 'https://shde.pkm.gov.gr/dev'),
+        base_url=config.get('base_url', 'https://shde.pkm.gov.gr'),
         urls=config.get('urls', {}),
         api_params=config.get('api_params', {}),
         login_params=config.get('login_params', {}),
@@ -532,9 +645,8 @@ def main():
                     changes = compare_incoming_records(incoming_records, previous_snapshot)
                 else:
                     changes = {'new': [], 'removed': [], 'modified': []}
-                records_to_enrich = changes['new'] if has_reference_snapshot else incoming_records
-                if records_to_enrich:
-                    enrich_protocol_numbers(monitor, records_to_enrich)
+                # Εμπλουτισμός όλων των εγγραφών με στοιχεία από Record Details API
+                enrich_record_details(monitor, incoming_records)
                 print_incoming_changes(changes, has_reference_snapshot, today_str, prev_snapshot_date)
                 save_incoming_snapshot(today_str, incoming_records)
         
