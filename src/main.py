@@ -327,9 +327,9 @@ def fetch_protocol_number(monitor, doc_id):
     return extract_field(payload, 'W007_P_FLD61')
 
 def fetch_record_details(monitor, doc_id):
-    """Ανακτά λεπτομέρειες εγγραφής: πρωτόκολλο, διαδικασία, διεύθυνση"""
+    """Ανακτά λεπτομέρειες εγγραφής: πρωτόκολλο, διαδικασία, διεύθυνση, αρ_διαδικασίας"""
     if not doc_id:
-        return None, None, None
+        return None, None, None, None
     
     session = getattr(monitor, 'session', None)
     base_url = getattr(monitor, 'base_url', '')
@@ -337,7 +337,7 @@ def fetch_record_details(monitor, doc_id):
     main_page_url = getattr(monitor, 'main_page_url', '')
     
     if not session or not base_url:
-        return None, None, None
+        return None, None, None, None
     
     endpoint = f"/services/DataServices/fetchDataTableRecord/7/{doc_id}"
     url = base_url.rstrip('/') + endpoint
@@ -360,16 +360,17 @@ def fetch_record_details(monitor, doc_id):
         payload = response.json()
     except Exception as exc:
         print(f"⚠️  Αποτυχία ανάκτησης στοιχείων για DOCID {doc_id}: {exc}")
-        return None, None, None
+        return None, None, None, None
     
     if not payload.get('success', False):
-        return None, None, None
+        return None, None, None, None
     
     protocol = extract_field(payload, 'W007_P_FLD61')
     procedure = extract_field(payload, 'W007_P_FLD23')
     directory = extract_field(payload, 'W007_P_FLD17')
+    procedure_id = extract_field(payload, 'W003_P_FLD75')
     
-    return protocol, procedure, directory
+    return protocol, procedure, directory, procedure_id
 
 def enrich_record_details(monitor, records, procedures_cache=None):
     """Εμπλουτίζει τις εγγραφές με πρωτόκολλο, διαδικασία και διεύθυνση"""
@@ -391,7 +392,7 @@ def enrich_record_details(monitor, records, procedures_cache=None):
             continue
         
         # Ανάκτηση στοιχείων από API
-        protocol, procedure, directory = fetch_record_details(monitor, doc_id)
+        protocol, procedure, directory, procedure_id = fetch_record_details(monitor, doc_id)
         
         if protocol and not rec.get('protocol_number'):
             rec['protocol_number'] = protocol
@@ -402,8 +403,13 @@ def enrich_record_details(monitor, records, procedures_cache=None):
             if procedure not in procedures_cache:
                 procedures_cache[procedure] = {
                     'title': procedure,
+                    'procedure_id': procedure_id or '',
                     'first_seen': datetime.now().isoformat()
                 }
+                cache_updated = True
+            # Αν υπάρχει στο cache αλλά δεν έχει procedure_id, ενημέρωσέ το
+            elif procedure_id and not procedures_cache[procedure].get('procedure_id'):
+                procedures_cache[procedure]['procedure_id'] = procedure_id
                 cache_updated = True
         
         if directory and not rec.get('directory'):
@@ -524,6 +530,49 @@ def fetch_incoming_records(monitor, incoming_params):
     finally:
         monitor.api_params = original_params
 
+def update_procedures_cache_from_procedures(procedures):
+    """Ενημερώνει το procedures_cache από τη λίστα διαδικασιών (ενεργές και μη)"""
+    procedures_cache = load_procedures_cache()
+    cache_updated = False
+    
+    for proc in procedures:
+        # Χρησιμοποιούμε την περιγραφή ως κλειδί (ταιριάζει με το procedure title)
+        title = proc.get('περιγραφή', '')
+        if not title:
+            continue
+        
+        procedure_id = proc.get('αρ_διαδικασίας', '')
+        code = proc.get('κωδικός', '')
+        is_active = proc.get('ενεργή', '') == 'ΝΑΙ'
+        
+        if title not in procedures_cache:
+            procedures_cache[title] = {
+                'title': title,
+                'procedure_id': procedure_id,
+                'code': code,
+                'is_active': is_active,
+                'first_seen': datetime.now().isoformat(),
+                'directories': []
+            }
+            cache_updated = True
+        else:
+            # Ενημέρωση υπαρχόντων πεδίων αν λείπουν ή άλλαξαν
+            if procedure_id and procedures_cache[title].get('procedure_id') != procedure_id:
+                procedures_cache[title]['procedure_id'] = procedure_id
+                cache_updated = True
+            if code and procedures_cache[title].get('code') != code:
+                procedures_cache[title]['code'] = code
+                cache_updated = True
+            if procedures_cache[title].get('is_active') != is_active:
+                procedures_cache[title]['is_active'] = is_active
+                cache_updated = True
+    
+    if cache_updated:
+        save_procedures_cache(procedures_cache)
+        print(f"📝 Ενημερώθηκε το procedures_cache με {len(procedures)} διαδικασίες")
+    
+    return procedures_cache
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -607,6 +656,9 @@ def main():
         
         all_procedures = monitor.parse_table_data(json_data)
         active_procedures = [p for p in all_procedures if p.get('ενεργή') == 'ΝΑΙ']
+        
+        # Ενημέρωση procedures_cache με όλες τις διαδικασίες
+        update_procedures_cache_from_procedures(all_procedures)
         
         print(f"\n📊 Σύνολο διαδικασιών: {len(all_procedures)}")
         print(f"✅ Ενεργές διαδικασίες: {len(active_procedures)}")
