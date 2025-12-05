@@ -783,6 +783,11 @@ def main():
         help='Ελέγχει τις εισερχόμενες αιτήσεις (portal) και αποθηκεύει ημερήσιο snapshot'
     )
     parser.add_argument(
+        '--enrich-all',
+        action='store_true',
+        help='Εμπλουτίζει όλες τις εγγραφές με ελλιπή στοιχεία (όχι μόνο τις νέες)'
+    )
+    parser.add_argument(
         '--compare-date',
         type=str,
         metavar='YYYY-MM-DD',
@@ -920,10 +925,19 @@ def main():
                 else:
                     changes = {'new': [], 'removed': [], 'modified': []}
                 
-                # Εμπλουτισμός μόνο των νέων εγγραφών (οι υπάρχουσες έχουν ήδη στοιχεία)
-                records_to_enrich = changes['new'] if has_reference_snapshot else incoming_records
-                if records_to_enrich:
-                    enrich_record_details(monitor, records_to_enrich)
+                # Εμπλουτισμός εγγραφών
+                if args.enrich_all:
+                    # Εμπλουτισμός όλων των εγγραφών που έχουν κενά πεδία
+                    records_to_enrich = [r for r in incoming_records if not r.get('procedure') or not r.get('directory')]
+                    if records_to_enrich:
+                        print(f"\n🔄 Εμπλουτισμός {len(records_to_enrich)} εγγραφών με ελλιπή στοιχεία...")
+                        enrich_record_details(monitor, records_to_enrich)
+                else:
+                    # Εμπλουτισμός μόνο των νέων εγγραφών
+                    records_to_enrich = changes['new'] if has_reference_snapshot else incoming_records
+                    if records_to_enrich:
+                        enrich_record_details(monitor, records_to_enrich)
+                
                 print_incoming_changes(changes, has_reference_snapshot, today_str, prev_snapshot_date)
                 save_incoming_snapshot(today_str, incoming_records)
         
