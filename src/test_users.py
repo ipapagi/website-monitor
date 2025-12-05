@@ -16,8 +16,7 @@ def load_test_users_config():
     return {
         'internal_user_suffix': '(Εσωτ. χρήστης)',
         'test_users': [],
-        'test_companies': [],
-        'exclude_case_ids': ['0']
+        'test_companies': []
     }
 
 def is_test_record(record, config=None):
@@ -26,11 +25,6 @@ def is_test_record(record, config=None):
         config = load_test_users_config()
     
     party = record.get('party', '')
-    case_id = record.get('case_id', '')
-    
-    # Εξαίρεση case_ids (π.χ. "0")
-    if case_id in config.get('exclude_case_ids', []):
-        return True, 'invalid_case_id'
     
     # Εσωτερικός χρήστης
     internal_suffix = config.get('internal_user_suffix', '(Εσωτ. χρήστης)')
