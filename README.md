@@ -19,7 +19,9 @@
 website-monitor/
 ├── src/
 │   ├── main.py          # Entry point
-│   ├── monitor.py       # PKMMonitor class
+│   ├── monitor.py       # PKMMonitor class (continuous monitoring)
+│   ├── session.py       # Session management, login, HTTP requests
+│   ├── notifications.py # Desktop notifications & sounds
 │   ├── config.py        # Configuration & paths
 │   ├── baseline.py      # Baseline management (ενεργές & όλες)
 │   ├── procedures.py    # Procedures cache
