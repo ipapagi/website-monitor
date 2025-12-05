@@ -10,6 +10,7 @@
 - ✅ Ανίχνευση αλλαγών (νέες, τροποποιημένες, ενεργοποιημένες/απενεργοποιημένες)
 - ✅ Παρακολούθηση εισερχόμενων αιτήσεων με ημερήσια snapshots
 - ✅ Εμπλουτισμός εγγραφών με στοιχεία διαδικασίας και διεύθυνσης
+- ✅ Διαχωρισμός πραγματικών/δοκιμαστικών αιτήσεων
 - ✅ Desktop notifications και ηχητικές ειδοποιήσεις
 - ✅ Continuous monitoring
 
@@ -18,25 +19,28 @@
 ```
 website-monitor/
 ├── src/
-│   ├── main.py          # Entry point
-│   ├── monitor.py       # PKMMonitor class (continuous monitoring)
-│   ├── session.py       # Session management, login, HTTP requests
-│   ├── notifications.py # Desktop notifications & sounds
-│   ├── config.py        # Configuration & paths
-│   ├── baseline.py      # Baseline management (ενεργές & όλες)
-│   ├── procedures.py    # Procedures cache
-│   ├── incoming.py      # Incoming requests management
-│   ├── api.py           # API calls & record enrichment
-│   ├── display.py       # Output formatting
-│   └── utils.py         # Utilities
+│   ├── main.py              # Entry point
+│   ├── monitor.py           # PKMMonitor class (continuous monitoring)
+│   ├── session.py           # Session management, login, HTTP requests
+│   ├── notifications.py     # Desktop notifications & sounds
+│   ├── config.py            # Configuration & paths
+│   ├── baseline.py          # Baseline management (ενεργές & όλες)
+│   ├── procedures.py        # Procedures cache
+│   ├── incoming.py          # Incoming requests management
+│   ├── api.py               # API calls & record enrichment
+│   ├── display.py           # Output formatting
+│   ├── test_users.py        # Διαχείριση δοκιμαστικών χρηστών
+│   ├── backfill_snapshots.py # Ενημέρωση παλαιότερων snapshots
+│   └── utils.py             # Utilities
 ├── config/
-│   └── config.yaml      # Ρυθμίσεις URLs και API
+│   └── config.yaml          # Ρυθμίσεις URLs και API
 ├── data/
-│   ├── incoming_requests/           # Ημερήσια snapshots αιτήσεων
+│   ├── incoming_requests/   # Ημερήσια snapshots αιτήσεων
 │   ├── active_procedures_baseline.json
 │   ├── all_procedures_baseline.json
-│   └── procedures_cache.json
-├── .env                 # Credentials (δεν είναι στο repo)
+│   ├── procedures_cache.json
+│   └── test_users.json      # Λίστα δοκιμαστικών χρηστών
+├── .env                     # Credentials (δεν είναι στο repo)
 ├── requirements.txt
 └── README.md
 ```
@@ -76,6 +80,16 @@ PKM_USERNAME=your_username
 PKM_PASSWORD=your_password
 ```
 
+### Αρχείο `data/test_users.json`
+Ρύθμιση δοκιμαστικών χρηστών για διαχωρισμό από πραγματικές αιτήσεις:
+```json
+{
+  "internal_user_suffix": "(Εσωτ. χρήστης)",
+  "test_users": ["", ""],
+  "test_companies": []
+}
+```
+
 ## Χρήση
 
 ### Ενεργές Διαδικασίες
@@ -97,6 +111,19 @@ python src/main.py --list-all           # Εμφάνιση όλων των δι�
 python src/main.py --check-incoming-portal                # Έλεγχος νέων αιτήσεων
 python src/main.py --check-incoming-portal --enrich-all   # + εμπλουτισμός όλων με ελλιπή στοιχεία
 python src/main.py --compare-date 2025-12-05              # Σύγκριση snapshot ημερομηνίας
+```
+
+### Ανάλυση Δοκιμαστικών/Πραγματικών Αιτήσεων
+```bash
+python src/main.py --analyze-test 2025-12-05              # Ανάλυση snapshot συγκεκριμένης ημερομηνίας
+python src/main.py --check-incoming-portal --analyze-current  # Ανάλυση τρεχουσών αιτήσεων
+```
+
+### Ενημέρωση Παλαιότερων Snapshots
+```bash
+python src/backfill_snapshots.py                # Dry run - δείχνει τι θα αλλάξει
+python src/backfill_snapshots.py --live         # Εφαρμογή αλλαγών
+python src/backfill_snapshots.py --source 2025-12-05 --live  # Με συγκεκριμένη πηγή
 ```
 
 ### Συνδυασμοί
@@ -124,6 +151,8 @@ python src/main.py                      # Ξεκινά continuous monitoring
 | `--check-incoming-portal` | Ελέγχει εισερχόμενες αιτήσεις |
 | `--enrich-all` | Εμπλουτίζει όλες τις εγγραφές με ελλιπή στοιχεία |
 | `--compare-date YYYY-MM-DD` | Συγκρίνει snapshot συγκεκριμένης ημερομηνίας |
+| `--analyze-test YYYY-MM-DD` | Αναλύει δοκιμαστικές/πραγματικές αιτήσεις |
+| `--analyze-current` | Ανάλυση τρεχουσών αιτήσεων |
 | `--no-monitor` | Δεν ξεκινά continuous monitoring |
 
 ## VS Code Launch Configurations
