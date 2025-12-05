@@ -1,283 +1,172 @@
+"""Entry point για PKM Website Monitor"""
 import sys
 import os
+import argparse
+from datetime import datetime
 
-# Προσθήκη του src directory στο path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from monitor import PKMMonitor
 from utils import load_config
-import argparse
-import json
-from datetime import datetime
+from config import INCOMING_DEFAULT_PARAMS, get_project_root
+from baseline import (save_baseline, load_baseline, compare_with_baseline,
+                      save_all_procedures_baseline, load_all_procedures_baseline,
+                      compare_all_procedures_with_baseline)
+from procedures import update_procedures_cache_from_procedures
+from incoming import (simplify_incoming_records, compare_incoming_records,
+                      load_previous_incoming_snapshot, save_incoming_snapshot,
+                      fetch_incoming_records, load_incoming_snapshot)
+from api import enrich_record_details
+from display import (print_comparison_results, print_all_procedures_comparison,
+                     print_incoming_changes)
 
-def get_baseline_path():
-    """Επιστρέφει το path του baseline αρχείου"""
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(project_root, 'data', 'active_procedures_baseline.json')
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='PKM Website Monitor')
+    parser.add_argument('--save-baseline', action='store_true')
+    parser.add_argument('--compare', action='store_true')
+    parser.add_argument('--list-active', action='store_true')
+    parser.add_argument('--save-all-baseline', action='store_true')
+    parser.add_argument('--compare-all', action='store_true')
+    parser.add_argument('--list-all', action='store_true')
+    parser.add_argument('--no-monitor', action='store_true')
+    parser.add_argument('--check-incoming-portal', action='store_true')
+    parser.add_argument('--enrich-all', action='store_true')
+    parser.add_argument('--compare-date', type=str, metavar='YYYY-MM-DD')
+    return parser.parse_args()
 
-def save_baseline(active_procedures):
-    """Αποθηκεύει τις ενεργές διαδικασίες ως baseline"""
-    baseline_path = get_baseline_path()
-    
-    # Δημιουργία data φακέλου αν δεν υπάρχει
-    os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
-    
-    baseline_data = {
-        'timestamp': datetime.now().isoformat(),
-        'count': len(active_procedures),
-        'procedures': active_procedures
-    }
-    
-    with open(baseline_path, 'w', encoding='utf-8') as f:
-        json.dump(baseline_data, f, ensure_ascii=False, indent=2)
-    
-    print(f"\n💾 Baseline αποθηκεύτηκε: {baseline_path}")
-    print(f"📋 Ενεργές διαδικασίες: {len(active_procedures)}")
-    return baseline_path
+def needs_data_fetch(args):
+    return (args.save_baseline or args.compare or args.list_active or
+            args.check_incoming_portal or args.save_all_baseline or
+            args.compare_all or args.list_all)
 
-def load_baseline():
-    """Φορτώνει το baseline αν υπάρχει"""
-    baseline_path = get_baseline_path()
+def handle_procedures(args, all_procedures, active_procedures):
+    """Χειρίζεται τις εντολές για διαδικασίες"""
+    print(f"\n📊 Σύνολο διαδικασιών: {len(all_procedures)}")
+    print(f"✅ Ενεργές: {len(active_procedures)} | ❌ Ανενεργές: {len(all_procedures) - len(active_procedures)}")
     
-    if not os.path.exists(baseline_path):
-        return None
+    if args.list_active:
+        print("\n" + "="*80 + "\n" + "📋 ΕΝΕΡΓΕΣ ΔΙΑΔΙΚΑΣΙΕΣ".center(80) + "\n" + "="*80)
+        for i, p in enumerate(active_procedures, 1):
+            print(f"{i:3}. [{p.get('κωδικός')}] {p.get('τίτλος', '')}")
+        print("="*80)
     
-    with open(baseline_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def compare_with_baseline(current_procedures, baseline_data):
-    """Συγκρίνει τις τρέχουσες διαδικασίες με το baseline"""
-    baseline_procedures = baseline_data.get('procedures', [])
+    if args.list_all:
+        print("\n" + "="*80 + "\n" + "📋 ΟΛΕΣ ΟΙ ΔΙΑΔΙΚΑΣΙΕΣ".center(80) + "\n" + "="*80)
+        for i, p in enumerate(all_procedures, 1):
+            s = "✅" if p.get('ενεργή') == 'ΝΑΙ' else "❌"
+            print(f"{i:3}. {s} [{p.get('κωδικός')}] {p.get('τίτλος', '')}")
+        print("="*80)
     
-    # Δημιουργία dictionaries με βάση το docid
-    baseline_dict = {p['docid']: p for p in baseline_procedures}
-    current_dict = {p['docid']: p for p in current_procedures}
-    
-    changes = {
-        'new': [],           # Νέες ενεργές
-        'removed': [],       # Αφαιρέθηκαν (έγιναν ανενεργές)
-        'activated': [],     # Έγιναν ενεργές (από ΟΧΙ σε ΝΑΙ)
-        'deactivated': [],   # Έγιναν ανενεργές (από ΝΑΙ σε ΟΧΙ)
-        'modified': []       # Άλλες αλλαγές
-    }
-    
-    # Εύρεση νέων ενεργών
-    for docid, proc in current_dict.items():
-        if docid not in baseline_dict:
-            if proc.get('ενεργή') == 'ΝΑΙ':
-                changes['new'].append(proc)
+    if args.save_baseline:
+        save_baseline(active_procedures)
+    if args.save_all_baseline:
+        save_all_procedures_baseline(all_procedures)
+    if args.compare:
+        bl = load_baseline()
+        if bl:
+            print_comparison_results(compare_with_baseline(all_procedures, bl), bl)
         else:
-            old_proc = baseline_dict[docid]
-            # Έλεγχος αν άλλαξε η κατάσταση ενεργής
-            if old_proc.get('ενεργή') != proc.get('ενεργή'):
-                if proc.get('ενεργή') == 'ΝΑΙ':
-                    changes['activated'].append({'old': old_proc, 'new': proc})
-                else:
-                    changes['deactivated'].append({'old': old_proc, 'new': proc})
-            # Έλεγχος για άλλες αλλαγές σε ενεργές διαδικασίες
-            elif proc.get('ενεργή') == 'ΝΑΙ' and old_proc != proc:
-                # Βρες τι άλλαξε
-                field_changes = {}
-                for key in proc.keys():
-                    if old_proc.get(key) != proc.get(key):
-                        field_changes[key] = {
-                            'old': old_proc.get(key, ''),
-                            'new': proc.get(key, '')
-                        }
-                changes['modified'].append({
-                    'old': old_proc, 
-                    'new': proc,
-                    'field_changes': field_changes
-                })
-    
-    # Εύρεση διαδικασιών που αφαιρέθηκαν
-    for docid, proc in baseline_dict.items():
-        if docid not in current_dict:
-            changes['removed'].append(proc)
-    
-    return changes
+            print("\n⚠️  Δεν βρέθηκε baseline! Τρέξε --save-baseline πρώτα.")
+    if args.compare_all:
+        bl = load_all_procedures_baseline()
+        if bl:
+            print_all_procedures_comparison(compare_all_procedures_with_baseline(all_procedures, bl), bl)
+        else:
+            print("\n⚠️  Δεν βρέθηκε baseline! Τρέξε --save-all-baseline πρώτα.")
 
-def print_comparison_results(changes, baseline_data):
-    """Εμφανίζει τα αποτελέσματα της σύγκρισης"""
-    baseline_time = baseline_data.get('timestamp', 'Άγνωστο')
-    baseline_count = baseline_data.get('count', 0)
+def handle_incoming(args, monitor, config):
+    """Χειρίζεται τις εντολές για εισερχόμενες αιτήσεις"""
+    from incoming import merge_with_previous_snapshot  # Προσθήκη import
     
-    print("\n" + "="*80)
-    print("📊 ΣΥΓΚΡΙΣΗ ΜΕ BASELINE".center(80))
-    print("="*80)
-    print(f"📅 Baseline από: {baseline_time}")
-    print(f"📋 Ενεργές στο baseline: {baseline_count}")
-    print("="*80)
+    data = fetch_incoming_records(monitor, config.get('incoming_api_params', INCOMING_DEFAULT_PARAMS).copy())
+    if not data or not data.get('success'):
+        print("\n⚠️  Αποτυχία λήψης εισερχόμενων αιτήσεων.")
+        return
     
-    has_changes = False
+    records = simplify_incoming_records(data.get('data', []))
+    today = datetime.now().strftime("%Y-%m-%d")
+    prev_date, prev_snap = load_previous_incoming_snapshot(today)
+    has_prev = prev_snap is not None
     
-    if changes['new']:
-        has_changes = True
-        print(f"\n🆕 ΝΕΕΣ ΕΝΕΡΓΕΣ ΔΙΑΔΙΚΑΣΙΕΣ ({len(changes['new'])})")
-        print("─" * 80)
-        for idx, proc in enumerate(changes['new'], 1):
-            print(f"{idx:3}. ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
+    # Συγχώνευση με προηγούμενο snapshot για να μην χαθούν παλιές εγγραφές
+    if has_prev:
+        records = merge_with_previous_snapshot(records, prev_snap)
     
-    if changes['activated']:
-        has_changes = True
-        print(f"\n🔓 ΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['activated'])})")
-        print("─" * 80)
-        for idx, item in enumerate(changes['activated'], 1):
-            proc = item['new']
-            print(f"{idx:3}. ✅ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
-            print(f"     └─ Ενεργή: ΟΧΙ → ΝΑΙ")
+    if has_prev:
+        prev_dict = {r['case_id']: r for r in prev_snap.get('records', []) if r.get('case_id')}
+        for rec in records:
+            if rec.get('case_id') in prev_dict:
+                prev = prev_dict[rec['case_id']]
+                for k in ['protocol_number', 'procedure', 'directory']:
+                    if prev.get(k) and not rec.get(k):
+                        rec[k] = prev[k]
+        changes = compare_incoming_records(records, prev_snap)
+    else:
+        changes = {'new': [], 'removed': [], 'modified': []}
     
-    if changes['deactivated']:
-        has_changes = True
-        print(f"\n🔒 ΑΠΕΝΕΡΓΟΠΟΙΗΘΗΚΑΝ ({len(changes['deactivated'])})")
-        print("─" * 80)
-        for idx, item in enumerate(changes['deactivated'], 1):
-            proc = item['new']
-            print(f"{idx:3}. ❌ [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
-            print(f"     └─ Ενεργή: ΝΑΙ → ΟΧΙ")
+    to_enrich = ([r for r in records if not r.get('procedure') or not r.get('directory')] 
+                 if args.enrich_all else (changes['new'] if has_prev else records))
+    if to_enrich:
+        if args.enrich_all:
+            print(f"\n🔄 Εμπλουτισμός {len(to_enrich)} εγγραφών...")
+        enrich_record_details(monitor, to_enrich)
     
-    if changes['removed']:
-        has_changes = True
-        print(f"\n🗑️  ΑΦΑΙΡΕΘΗΚΑΝ ({len(changes['removed'])})")
-        print("─" * 80)
-        for idx, proc in enumerate(changes['removed'], 1):
-            print(f"{idx:3}. ⚠️  [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
-    
-    if changes['modified']:
-        has_changes = True
-        print(f"\n🔄 ΤΡΟΠΟΠΟΙΗΘΗΚΑΝ ({len(changes['modified'])})")
-        print("─" * 80)
-        for idx, mod in enumerate(changes['modified'], 1):
-            print(f"{idx:3}. 📝 [{mod['new'].get('κωδικός')}] {mod['new'].get('τίτλος', '')}")
-            field_changes = mod.get('field_changes', {})
-            for field, vals in field_changes.items():
-                if field not in ['docid', '_raw']:
-                    old_val = vals['old'] if vals['old'] else '(κενό)'
-                    new_val = vals['new'] if vals['new'] else '(κενό)'
-                    if len(str(old_val)) > 50:
-                        old_val = str(old_val)[:50] + '...'
-                    if len(str(new_val)) > 50:
-                        new_val = str(new_val)[:50] + '...'
-                    print(f"     └─ {field}: {old_val} → {new_val}")
-    
-    if not has_changes:
-        print("\n✅ Καμία αλλαγή από το baseline!")
-    
-    print("\n" + "="*80)
+    print_incoming_changes(changes, has_prev, today, prev_date)
+    save_incoming_snapshot(today, records)
 
 def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description='PKM Website Monitor - Παρακολούθηση ενεργών διαδικασιών'
-    )
-    parser.add_argument(
-        '--save-baseline', 
-        action='store_true',
-        help='Αποθηκεύει τις τρέχουσες ενεργές διαδικασίες ως baseline'
-    )
-    parser.add_argument(
-        '--compare', 
-        action='store_true',
-        help='Συγκρίνει με το αποθηκευμένο baseline (χωρίς continuous monitoring)'
-    )
-    parser.add_argument(
-        '--list-active', 
-        action='store_true',
-        help='Εμφανίζει τις ενεργές διαδικασίες'
-    )
-    parser.add_argument(
-        '--no-monitor', 
-        action='store_true',
-        help='Δεν ξεκινά continuous monitoring'
-    )
-    
-    args = parser.parse_args()
-    
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    args = parse_arguments()
     print("\n" + "="*80)
-    print(f"🚀 Εκκίνηση PKM Website Monitor - {current_time}".center(80))
+    print(f"🚀 PKM Website Monitor - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(80))
     print("="*80)
     
-    # Get project root directory
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    config_path = os.path.join(project_root, 'config', 'config.yaml')
-    
-    # Load configuration
-    config = load_config(config_path)
-    
-    # Create monitor instance
+    config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))
     monitor = PKMMonitor(
-        base_url=config.get('base_url', 'https://shde.pkm.gov.gr/dev'),
-        urls=config.get('urls', {}),
-        api_params=config.get('api_params', {}),
-        login_params=config.get('login_params', {}),
-        check_interval=config.get('check_interval', 300),
-        username=config.get('username'),
-        password=config.get('password'),
-        session_cookies=config.get('session_cookies')
-    )
+        base_url=config.get('base_url', 'https://shde.pkm.gov.gr'),
+        urls=config.get('urls', {}), api_params=config.get('api_params', {}),
+        login_params=config.get('login_params', {}), check_interval=config.get('check_interval', 300),
+        username=config.get('username'), password=config.get('password'),
+        session_cookies=config.get('session_cookies'))
     
-    # Αν χρειάζεται σύγκριση ή αποθήκευση, πρέπει να πάρουμε τα δεδομένα
-    if args.save_baseline or args.compare or args.list_active:
+    if args.compare_date:
+        snap = load_incoming_snapshot(args.compare_date)
+        if not snap:
+            print(f"❌ Δεν βρέθηκε snapshot για {args.compare_date}")
+            sys.exit(1)
+        prev_date, prev = load_previous_incoming_snapshot(args.compare_date)
+        if prev:
+            print_incoming_changes(compare_incoming_records(snap.get('records', []), prev), True, args.compare_date, prev_date)
+        else:
+            print(f"ℹ️  Δεν βρέθηκε προηγούμενο snapshot. Εγγραφές: {snap.get('count', 0)}")
+        sys.exit(0)
+    
+    if needs_data_fetch(args):
         print("\n🔄 Ανάκτηση δεδομένων...")
-        
-        # Login και fetch
-        if not monitor.logged_in:
-            if not monitor.login():
-                print("❌ Αποτυχία login")
-                sys.exit(1)
-        
+        if not monitor.logged_in and not monitor.login():
+            print("❌ Αποτυχία login")
+            sys.exit(1)
         if not monitor.main_page_loaded:
             monitor.load_main_page()
-        
-        json_data = monitor.fetch_page()
-        if not json_data:
-            print("❌ Αποτυχία ανάκτησης δεδομένων")
+        data = monitor.fetch_page()
+        if not data:
+            print("❌ Αποτυχία ανάκτησης")
             sys.exit(1)
         
-        all_procedures = monitor.parse_table_data(json_data)
-        active_procedures = [p for p in all_procedures if p.get('ενεργή') == 'ΝΑΙ']
-        
-        print(f"\n📊 Σύνολο διαδικασιών: {len(all_procedures)}")
-        print(f"✅ Ενεργές διαδικασίες: {len(active_procedures)}")
-        
-        # Εμφάνιση ενεργών
-        if args.list_active:
-            print("\n" + "="*80)
-            print("📋 ΕΝΕΡΓΕΣ ΔΙΑΔΙΚΑΣΙΕΣ".center(80))
-            print("="*80)
-            for i, proc in enumerate(active_procedures, 1):
-                print(f"{i:3}. [{proc.get('κωδικός')}] {proc.get('τίτλος', '')}")
-            print("="*80)
-        
-        # Αποθήκευση baseline
-        if args.save_baseline:
-            save_baseline(active_procedures)
-        
-        # Σύγκριση με baseline
-        if args.compare:
-            baseline_data = load_baseline()
-            if baseline_data:
-                changes = compare_with_baseline(all_procedures, baseline_data)
-                print_comparison_results(changes, baseline_data)
-            else:
-                print("\n⚠️  Δεν βρέθηκε baseline!")
-                print("💡 Τρέξε πρώτα με --save-baseline για να δημιουργήσεις ένα.")
-        
-        # Αν --no-monitor, τερμάτισε
-        if args.no_monitor or args.save_baseline or args.compare or args.list_active:
-            sys.exit(0)
+        all_procs = monitor.parse_table_data(data)
+        active = [p for p in all_procs if p.get('ενεργή') == 'ΝΑΙ']
+        update_procedures_cache_from_procedures(all_procs)
+        handle_procedures(args, all_procs, active)
+        if args.check_incoming_portal:
+            handle_incoming(args, monitor, config)
+        sys.exit(0)
     
-    # Start monitoring
     try:
-        # Φόρτωση baseline για σύγκριση κατά το monitoring
-        baseline_data = load_baseline()
-        if baseline_data:
-            print(f"\n📊 Φορτώθηκε baseline με {baseline_data.get('count', 0)} ενεργές διαδικασίες")
-        
+        bl = load_baseline()
+        if bl:
+            print(f"\n📊 Baseline: {bl.get('count', 0)} ενεργές διαδικασίες")
         monitor.start_monitoring()
     except KeyboardInterrupt:
-        print("\nMonitoring stopped by user")
+        print("\nStopped by user")
         sys.exit(0)
 
 if __name__ == '__main__':
