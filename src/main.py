@@ -437,6 +437,12 @@ def main():
         action='store_true',
         help='Ελέγχει τις εισερχόμενες αιτήσεις (portal) και αποθηκεύει ημερήσιο snapshot'
     )
+    parser.add_argument(
+        '--compare-date',
+        type=str,
+        metavar='YYYY-MM-DD',
+        help='Συγκρίνει το snapshot της συγκεκριμένης ημερομηνίας με το προηγούμενο διαθέσιμο'
+    )
     
     args = parser.parse_args()
     
@@ -535,6 +541,31 @@ def main():
         # Αν --no-monitor, τερμάτισε
         if args.no_monitor or args.save_baseline or args.compare or args.list_active or args.check_incoming_portal:
             sys.exit(0)
+    
+    # Σύγκριση snapshot συγκεκριμένης ημερομηνίας
+    if args.compare_date:
+        target_date_str = args.compare_date
+        try:
+            datetime.strptime(target_date_str, "%Y-%m-%d")
+        except ValueError:
+            print(f"❌ Μη έγκυρη μορφή ημερομηνίας: {target_date_str}. Χρησιμοποίησε YYYY-MM-DD")
+            sys.exit(1)
+        
+        target_snapshot = load_incoming_snapshot(target_date_str)
+        if not target_snapshot:
+            print(f"❌ Δεν βρέθηκε snapshot για την ημερομηνία {target_date_str}")
+            sys.exit(1)
+        
+        prev_date_str, prev_snapshot = load_previous_incoming_snapshot(target_date_str)
+        if not prev_snapshot:
+            print(f"ℹ️  Δεν βρέθηκε προηγούμενο snapshot πριν την {target_date_str}")
+            print(f"📋 Το snapshot της {target_date_str} περιέχει {target_snapshot.get('count', 0)} εγγραφές.")
+            sys.exit(0)
+        
+        target_records = target_snapshot.get('records', [])
+        changes = compare_incoming_records(target_records, prev_snapshot)
+        print_incoming_changes(changes, True, target_date_str, prev_date_str)
+        sys.exit(0)
     
     # Start monitoring
     try:
