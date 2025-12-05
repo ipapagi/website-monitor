@@ -32,6 +32,10 @@ def parse_arguments():
     parser.add_argument('--check-incoming-portal', action='store_true')
     parser.add_argument('--enrich-all', action='store_true')
     parser.add_argument('--compare-date', type=str, metavar='YYYY-MM-DD')
+    parser.add_argument('--analyze-test', type=str, metavar='YYYY-MM-DD', 
+                       help='Αναλύει τις αιτήσεις ενός snapshot για δοκιμαστικές/πραγματικές')
+    parser.add_argument('--analyze-current', action='store_true',
+                       help='Αναλύει τις τρέχουσες αιτήσεις για δοκιμαστικές/πραγματικές')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -114,11 +118,30 @@ def handle_incoming(args, monitor, config):
     print_incoming_changes(changes, has_prev, today, prev_date)
     save_incoming_snapshot(today, records)
 
+def handle_analyze_test(date_str):
+    """Αναλύει τις αιτήσεις ενός snapshot για δοκιμαστικές/πραγματικές"""
+    from test_users import classify_records, get_record_stats
+    from display import print_test_analysis
+    
+    snap = load_incoming_snapshot(date_str)
+    if not snap:
+        print(f"❌ Δεν βρέθηκε snapshot για {date_str}")
+        return False
+    
+    records = snap.get('records', [])
+    print_test_analysis(records, date_str)
+    return True
+
 def main():
     args = parse_arguments()
     print("\n" + "="*80)
     print(f"🚀 PKM Website Monitor - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(80))
     print("="*80)
+    
+    # Ανάλυση δοκιμαστικών για συγκεκριμένη ημερομηνία
+    if args.analyze_test:
+        handle_analyze_test(args.analyze_test)
+        sys.exit(0)
     
     config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))
     monitor = PKMMonitor(
@@ -140,7 +163,7 @@ def main():
             print(f"ℹ️  Δεν βρέθηκε προηγούμενο snapshot. Εγγραφές: {snap.get('count', 0)}")
         sys.exit(0)
     
-    if needs_data_fetch(args):
+    if needs_data_fetch(args) or args.analyze_current:
         print("\n🔄 Ανάκτηση δεδομένων...")
         if not monitor.logged_in and not monitor.login():
             print("❌ Αποτυχία login")
@@ -156,8 +179,19 @@ def main():
         active = [p for p in all_procs if p.get('ενεργή') == 'ΝΑΙ']
         update_procedures_cache_from_procedures(all_procs)
         handle_procedures(args, all_procs, active)
-        if args.check_incoming_portal:
+        
+        if args.check_incoming_portal or args.analyze_current:
             handle_incoming(args, monitor, config)
+            
+            # Ανάλυση δοκιμαστικών για τρέχουσες αιτήσεις
+            if args.analyze_current:
+                from test_users import classify_records
+                from display import print_test_analysis
+                today = datetime.now().strftime("%Y-%m-%d")
+                snap = load_incoming_snapshot(today)
+                if snap:
+                    print_test_analysis(snap.get('records', []), today)
+        
         sys.exit(0)
     
     try:
