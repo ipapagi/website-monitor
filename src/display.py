@@ -4,8 +4,8 @@ def _print_field_changes(field_changes, max_len=50):
     """Βοηθητική για εμφάνιση αλλαγών πεδίων"""
     for field, vals in field_changes.items():
         if field not in ['docid', '_raw']:
-            old_val = str(vals['old'])[:max_len] + '...' if len(str(vals['old'])) > max_len else (vals['old'] or '(κενό)')
-            new_val = str(vals['new'])[:max_len] + '...' if len(str(vals['new'])) > max_len else (vals['new'] or '(κενό)')
+            old_val = vals['old'] or '(κενό)'
+            new_val = vals['new'] or '(κενό)'
             print(f"     └─ {field}: {old_val} → {new_val}")
 
 def print_comparison_results(changes, baseline_data):
@@ -136,6 +136,7 @@ def _print_incoming_record_line(idx, rec, prefix=''):
     case_id = rec.get('case_id', 'N/A')
     protocol = rec.get('protocol_number', '')
     doc_cat = rec.get('document_category', '')
+    subject = rec.get('subject', '')
     submitted = rec.get('submitted_at', 'N/A')[:16]
     prefix_str = f"{prefix} " if prefix else "[+] "
     
@@ -145,6 +146,8 @@ def _print_incoming_record_line(idx, rec, prefix=''):
     cat_part = f"- {doc_cat:<25}" if doc_cat else " "*27
     
     print(f"{idx:>3}. {prefix_str}Υπόθεση {case_proto_padded} {cat_part} │ {submitted}")
+    if subject:
+        print(f"         📝 Θέμα: {subject}")
     if rec.get('procedure'):
         print(f"         📋 Διαδικασία: {rec['procedure']}")
     if rec.get('directory'):
@@ -200,6 +203,7 @@ def _print_analysis_record(idx, rec, icon):
     case_id = rec.get('case_id', 'N/A')
     protocol = rec.get('protocol_number', '')
     doc_cat = rec.get('document_category', '')
+    subject = rec.get('subject', '')
     submitted = rec.get('submitted_at', 'N/A')[:16]
     party = rec.get('party', '—')
     procedure = rec.get('procedure', '')
@@ -210,5 +214,7 @@ def _print_analysis_record(idx, rec, icon):
     cat_part = f"- {doc_cat:<25}" if doc_cat else " "*27
     
     print(f"{idx:>3}. {icon} [{case_proto_padded}] {cat_part} │ {submitted} │ {party}")
+    if subject:
+        print(f"         📝 {subject}")
     if procedure:
-        print(f"         📋 {procedure[:70]}{'...' if len(procedure) > 70 else ''}")
+        print(f"         📋 {procedure}")

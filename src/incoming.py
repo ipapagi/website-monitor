@@ -80,6 +80,8 @@ def fetch_incoming_records(monitor, incoming_params):
 
 def simplify_incoming_records(records):
     """Απλοποιεί τις εγγραφές από το API"""
+    from api import sanitize_party_name
+    
     simplified = []
     for rec in records:
         case_id_raw = (rec.get('W007_P_FLD21') or rec.get('Αρ. εγγράφου') or
@@ -93,12 +95,17 @@ def simplify_incoming_records(records):
         party_raw = (rec.get('W007_P_FLD13') or rec.get('party') or
                     rec.get('customer') or rec.get('applicant') or '')
         doc_id = str(rec.get('DOCID') or rec.get('docid') or '').strip()
-        doc_category = rec.get('W007_P_FLD30', '')  # Κατηγορία Εγγράφου
+        doc_category = rec.get('W007_P_FLD30', '')
+        # Θέμα/Τίτλος της αίτησης - W007_P_FLD6 είναι το σωστό πεδίο
+        subject_raw = rec.get('W007_P_FLD6') or ''
+        # Αφαίρεση ΑΦΜ από το θέμα (όπως και από το party)
+        subject = sanitize_party_name(subject_raw)
+        
         simplified.append({
             'case_id': case_id, 'submitted_at': submitted_at,
             'party': sanitize_party_name(party_raw), 'doc_id': doc_id,
             'protocol_number': '', 'procedure': '', 'directory': '',
-            'document_category': doc_category
+            'document_category': doc_category, 'subject': subject
         })
     return simplified
 
