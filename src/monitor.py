@@ -1,4 +1,4 @@
-"""PKMMonitor class - απλοποιημένη έκδοση"""
+"""PKMMonitor class - με υποστήριξη Email Notifications"""
 import json
 import hashlib
 import html
@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from session import PKMSession
 from notifications import print_status, play_alert_sound, send_notification
+from email_notifier import EmailNotifier
 
 class PKMMonitor(PKMSession):
     def __init__(self, base_url, urls, api_params=None, login_params=None, 
@@ -15,6 +16,9 @@ class PKMMonitor(PKMSession):
         self.check_interval = check_interval
         self.previous_data = None
         self.change_log = []
+        self.email_notifier = EmailNotifier()  # Νέο: Email notifier
+        self.is_down = False  # Νέο: Track αν το σύστημα είναι εκτός λειτουργίας
+        self.downtime_start = None  # Νέο: Track χρόνο αρχής downtime
 
     def fetch_page(self):
         """Ανάκτηση δεδομένων από API"""
@@ -61,12 +65,35 @@ class PKMMonitor(PKMSession):
         json_data = self.fetch_page()
         if not json_data:
             print_status("❌ Αποτυχία ανάκτησης", 'error')
+            
+            # Νέο: Αν το σύστημα δεν ήταν εκτός και τώρα είναι
+            if not self.is_down:
+                self.is_down = True
+                self.downtime_start = datetime.now()
+                error_msg = "Αποτυχία ανάκτησης δεδομένων από το API"
+                self.email_notifier.notify_error(
+                    website_name="PKM Portal",
+                    error_message=error_msg,
+                    url=self.base_url,
+                    timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                )
             return False
         
         current_data = self.parse_table_data(json_data)
         
         if self.previous_data is None:
             self.previous_data = current_data
+            # Νέο: Αν το σύστημα ήταν εκτός και τώρα ανακάμπτει
+            if self.is_down:
+                self.is_down = False
+                duration = self._calculate_downtime(self.downtime_start)
+                self.email_notifier.notify_recovery(
+                    website_name="PKM Portal",
+                    url=self.base_url,
+                    downtime_duration=duration,
+                    timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                )
+                self.downtime_start = None
             print_status(f"✅ Αρχικοποίηση - {len(current_data)} διαδικασίες", 'success')
             return False
         
@@ -98,6 +125,23 @@ class PKMMonitor(PKMSession):
                     entry = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
                     print(f"  • [{entry.get('κωδικός')}] {entry.get('τίτλος', 'N/A')}")
 
+    def _calculate_downtime(self, start_time):
+        """Νέο: Υπολογισμός διάρκειας downtime"""
+        if start_time is None:
+            return None
+        
+        duration = datetime.now() - start_time
+        hours = int(duration.total_seconds() // 3600)
+        minutes = int((duration.total_seconds() % 3600) // 60)
+        seconds = int(duration.total_seconds() % 60)
+        
+        if hours > 0:
+            return f"{hours}ω {minutes}λ {seconds}δ"
+        elif minutes > 0:
+            return f"{minutes}λ {seconds}δ"
+        else:
+            return f"{seconds}δ"
+
     def start_monitoring(self, duration=None):
         """Έναρξη continuous monitoring"""
         print("\n" + "="*80)
@@ -105,6 +149,7 @@ class PKMMonitor(PKMSession):
         print("="*80)
         print(f"📍 URL: {self.base_url}")
         print(f"⏱️  Συχνότητα: κάθε {self.check_interval}s ({self.check_interval/60:.1f} λεπτά)")
+        print(f"📧 Email Notifications: {'✅ Enabled' if self.email_notifier.is_enabled() else '❌ Disabled'}")
         print("="*80 + "\n")
         
         start_time = time.time()

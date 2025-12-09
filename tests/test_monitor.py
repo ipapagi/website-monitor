@@ -1,6 +1,12 @@
 import unittest
+import os
+import sys
 from unittest.mock import patch, MagicMock
-from src.monitor import PKMMonitor
+
+# Setup path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+
+from monitor import PKMMonitor
 
 class TestPKMMonitor(unittest.TestCase):
 

@@ -1,5 +1,11 @@
+import os
+import sys
 import pytest
-from src.parser import PKMParser  # Assuming PKMParser is the class responsible for parsing in parser.py
+
+# Setup path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+
+from parser import PKMParser  # Assuming PKMParser is the class responsible for parsing in parser.py
 
 def test_parse_table_data_valid():
     html_content = """

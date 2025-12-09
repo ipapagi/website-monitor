@@ -1,0 +1,10 @@
+{
+  "admins": [
+    {
+      "name": "Γιάννης",
+      "email": "i.papagiannitsis@pkm.gov.gr",
+      "notify_on_error": true,
+      "notify_on_recovery": true
+    }
+  ]
+}
