@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class EmailNotifier:
-    def __init__(self, admins_file: str = "admins.json"):
+    def __init__(self, admins_file: str = None):
         """
         Initialize email notifier with SMTP configuration
         
@@ -21,7 +21,12 @@ class EmailNotifier:
         self.email_password = os.getenv("EMAIL_PASSWORD")
         self.smtp_server = os.getenv("EMAIL_SMTP_SERVER")
         self.smtp_port = int(os.getenv("EMAIL_SMTP_PORT", 465))
-        self.admins_file = admins_file
+        
+        # Resolve admins file path
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        default_admins = os.path.join(base_dir, "data", "admins.json")
+        configured_admins = admins_file or os.getenv("ADMINS_FILE", default_admins)
+        self.admins_file = configured_admins if os.path.isabs(configured_admins) else os.path.join(base_dir, configured_admins)
         self.enabled = os.getenv("EMAIL_NOTIFICATIONS_ENABLED", "true").lower() == "true"
         
     def is_enabled(self) -> bool:
@@ -40,10 +45,10 @@ class EmailNotifier:
                 data = json.load(f)
                 return data.get("admins", [])
         except FileNotFoundError:
-            print(f"Warning: {self.admins_file} not found")
+            print(f"Warning: admins file not found at {self.admins_file}")
             return []
         except json.JSONDecodeError:
-            print(f"Error: Invalid JSON in {self.admins_file}")
+            print(f"Error: Invalid JSON in admins file at {self.admins_file}")
             return []
     
     def send_email(self, to_email: str, subject: str, body: str) -> bool:
