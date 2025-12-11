@@ -78,6 +78,30 @@ website-monitor/
 ```env
 PKM_USERNAME=your_username
 PKM_PASSWORD=your_password
+
+# Email Configuration (STARTTLS παράδειγμα)
+EMAIL_ADDRESS=itsxed@rcm.gov.gr
+EMAIL_PASSWORD=your_encrypted_password_here
+EMAIL_SMTP_SERVER=mailsmtp.rcm.gov.ar
+EMAIL_SMTP_PORT=587          # 587 για STARTTLS, ή 465 για SSL
+EMAIL_USE_TLS=true           # true για STARTTLS, false για SSL
+EMAIL_NOTIFICATIONS_ENABLED=true
+# Προαιρετικό: custom διαδρομή για admins
+# ADMINS_FILE=data/admins.json
+```
+
+### Αρχείο `data/admins.json`
+```json
+{
+  "admins": [
+    {
+      "name": "Admin User 1",
+      "email": "admin1@example.com",
+      "notify_on_error": true,
+      "notify_on_recovery": true
+    }
+  ]
+}
 ```
 
 ### Αρχείο `data/test_users.json`
