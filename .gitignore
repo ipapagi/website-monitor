@@ -52,6 +52,7 @@ login_response.html
 data/active_procedures_baseline.json
 data/incoming_requests/
 data/procedures_cache.json
+data/daily_report*.pdf
 
 # Logs
 logs/*.log
