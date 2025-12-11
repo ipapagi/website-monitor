@@ -2,6 +2,7 @@
 import os
 import sys
 from datetime import datetime
+from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,6 +18,7 @@ from baseline import (
 from incoming import (
     simplify_incoming_records,
     load_previous_incoming_snapshot,
+    load_incoming_snapshot,
     save_incoming_snapshot,
     fetch_incoming_records,
     compare_incoming_records,
@@ -24,6 +26,9 @@ from incoming import (
 )
 from test_users import classify_records, get_record_stats
 from email_notifier import EmailNotifier
+from report_display import print_full_digest
+
+load_dotenv()
 
 
 def _ensure_logged_in(monitor: PKMMonitor):
@@ -61,8 +66,32 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
 
     records = simplify_incoming_records(data.get("data", []))
     today = datetime.now().strftime("%Y-%m-%d")
-    prev_date, prev_snap = load_previous_incoming_snapshot(today)
-    has_prev = prev_snap is not None
+    
+    # Έλεγχος αν υπάρχει forced baseline ημερομηνία στο .env
+    force_baseline_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
+    if force_baseline_date:
+        print(f"ℹ️  Χρήση αναγκαστικής ημερομηνίας baseline: {force_baseline_date}")
+        forced_snap = load_incoming_snapshot(force_baseline_date)
+        if forced_snap:
+            prev_date, prev_snap = force_baseline_date, forced_snap
+            has_prev = True
+        else:
+            print(f"⚠️  Δεν βρέθηκε snapshot για {force_baseline_date}")
+            prev_date, prev_snap = None, None
+            has_prev = False
+    else:
+        # Κανονική ροή: ψάχνουμε προηγούμενο snapshot
+        prev_date, prev_snap = load_previous_incoming_snapshot(today)
+        has_prev = prev_snap is not None
+
+        # Αν δεν υπάρχει προηγούμενο snapshot, ψάχνουμε fallback ημερομηνία από .env
+        if not has_prev:
+            fallback_date = os.getenv("INCOMING_BASELINE_DATE")
+            if fallback_date:
+                fallback_snap = load_incoming_snapshot(fallback_date)
+                if fallback_snap:
+                    prev_date, prev_snap = fallback_date, fallback_snap
+                    has_prev = True
 
     if has_prev:
         records = merge_with_previous_snapshot(records, prev_snap)
@@ -137,6 +166,11 @@ def build_daily_digest(config_path: str | None = None) -> dict:
 def send_daily_email(config_path: str | None = None) -> bool:
     """Δημιουργεί και στέλνει το ημερήσιο email."""
     digest = build_daily_digest(config_path)
+    
+    # Εμφάνιση στο terminal
+    print_full_digest(digest)
+    
+    # Αποστολή email
     notifier = EmailNotifier()
     if not notifier.is_enabled():
         raise RuntimeError("Email notifications are disabled")

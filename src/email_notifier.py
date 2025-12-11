@@ -376,36 +376,21 @@ class EmailNotifier:
         def render_proc_rows(changes, label):
             rows = ""
             if not changes:
-                return "<tr><td colspan='4'>—</td></tr>"
+                return "<tr style='height: 0;'><td colspan='4'>—</td></tr>"
             for item in changes:
                 proc = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
-                code = esc(proc.get('κωδικός', ''))
-                title = esc(proc.get('τίτλος', ''))
+                code = esc(proc.get('κωδικός', ''))[:15]
+                title = esc(proc.get('τίτλος', ''))[:50]
                 status = esc(proc.get('ενεργή', ''))
-                rows += f"""
-                <tr>
-                    <td>{esc(label)}</td>
-                    <td>{code}</td>
-                    <td>{title}</td>
-                    <td>{status}</td>
-                </tr>
-                """
-            return rows or "<tr><td colspan='4'>—</td></tr>"
+                rows += f"<tr style='height: 0;'><td>{esc(label)}</td><td>{code}</td><td>{title}</td><td>{status}</td></tr>"
+            return rows or "<tr style='height: 0;'><td colspan='4'>—</td></tr>"
 
         def render_incoming_rows(records, icon):
             if not records:
-                return "<tr><td colspan='5'>—</td></tr>"
+                return "<tr style='height: 0;'><td colspan='5'>—</td></tr>"
             rows = ""
             for rec in records:
-                rows += f"""
-                <tr>
-                    <td>{icon}</td>
-                    <td>{esc(rec.get('case_id', ''))}</td>
-                    <td>{esc(rec.get('submitted_at', '')[:16])}</td>
-                    <td>{esc(rec.get('subject', ''))}</td>
-                    <td>{esc(rec.get('party', ''))}</td>
-                </tr>
-                """
+                rows += f"<tr style='height: 0;'><td>{icon}</td><td>{esc(rec.get('case_id', ''))[:15]}</td><td>{esc(rec.get('submitted_at', '')[:10])}</td><td>{esc(rec.get('subject', ''))[:30]}</td><td>{esc(rec.get('party', ''))[:25]}</td></tr>"
             return rows
 
         incoming = digest.get('incoming', {})
@@ -435,94 +420,91 @@ class EmailNotifier:
         <html>
             <head>
                 <style>
-                    body {{ font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; line-height: 1.6; }}
+                    body {{ font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; line-height: 1.4; font-size: 13px; }}
                     .header {{ background: linear-gradient(90deg, #0d47a1, #1976d2); color: #fff; padding: 20px; text-align: center; }}
-                    .section {{ background: #fff; margin: 15px 0; padding: 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }}
-                    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }}
-                    .card {{ background: #f5f7fb; border-radius: 6px; padding: 12px; text-align: center; }}
-                    .card h4 {{ margin: 0; color: #555; font-size: 13px; }}
-                    .card .num {{ font-size: 28px; font-weight: 700; color: #0d47a1; }}
-                    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                    th, td {{ border: 1px solid #e0e0e0; padding: 8px; text-align: left; font-size: 13px; }}
-                    th {{ background: #f0f4ff; color: #0d47a1; }}
-                    .pill {{ display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }}
-                    .pill-green {{ background: #e8f5e9; color: #2e7d32; }}
-                    .pill-red {{ background: #ffebee; color: #c62828; }}
-                    .pill-blue {{ background: #e3f2fd; color: #1565c0; }}
-                    .sub {{ color: #666; font-size: 12px; }}
+                    .section {{ background: #fff; margin: 10px 0; padding: 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }}
+                    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }}
+                    .card {{ background: #f5f7fb; border-radius: 6px; padding: 10px; text-align: center; }}
+                    .card h4 {{ margin: 0; color: #555; font-size: 12px; }}
+                    .card .num {{ font-size: 24px; font-weight: 700; color: #0d47a1; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
+                    th, td {{ border: 1px solid #e0e0e0; padding: 5px 4px; text-align: left; font-size: 12px; }}
+                    th {{ background: #f0f4ff; color: #0d47a1; font-weight: 600; }}
+                    tr {{ height: 0; }}
+                    .sub {{ color: #666; font-size: 11px; margin: 3px 0; }}
+                    h3 {{ margin: 8px 0 5px 0; color: #0d47a1; font-size: 14px; }}
+                    h4 {{ margin: 5px 0 3px 0; color: #555; font-size: 12px; font-weight: 600; }}
+                    .footer {{ text-align: center; color: #777; font-size: 10px; padding: 10px; margin-top: 20px; border-top: 1px solid #ddd; }}
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <h2>ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ</h2>
-                    <div>{esc(digest.get('generated_at', ''))} – {esc(digest.get('base_url', ''))}</div>
+                    <h2 style="margin: 0;">ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ</h2>
+                    <div style="font-size: 12px;">{esc(digest.get('generated_at', ''))} – {esc(digest.get('base_url', ''))}</div>
                 </div>
 
                 <div class="section">
                     <h3>Σύνοψη</h3>
                     <div class="cards">
-                        <div class="card"><h4>Ενεργές διαδικασίες</h4><div class="num">{stats_cards['active_total']}</div></div>
-                        <div class="card"><h4>Σύνολο διαδικασιών</h4><div class="num">{stats_cards['all_total']}</div></div>
-                        <div class="card"><h4>Νέες ενεργές</h4><div class="num">{stats_cards['active_new']}</div></div>
-                        <div class="card"><h4>Τροποποιήσεις ενεργών</h4><div class="num">{stats_cards['active_mod']}</div></div>
-                        <div class="card"><h4>Νέες συνολικές</h4><div class="num">{stats_cards['all_new']}</div></div>
-                        <div class="card"><h4>Τροποποιήσεις συνολικών</h4><div class="num">{stats_cards['all_mod']}</div></div>
-                        <div class="card"><h4>Αιτήσεις (σύνολο)</h4><div class="num">{stats_cards['incoming_total']}</div></div>
-                        <div class="card"><h4>Πραγματικές</h4><div class="num">{stats_cards['incoming_real']}</div></div>
-                        <div class="card"><h4>Δοκιμαστικές</h4><div class="num">{stats_cards['incoming_test']}</div></div>
-                        <div class="card"><h4>Αφαιρέθηκαν</h4><div class="num">{stats_cards['incoming_removed']}</div></div>
+                        <div class="card"><h4>Ενεργές</h4><div class="num">{stats_cards['active_total']}</div></div>
+                        <div class="card"><h4>Σύνολο</h4><div class="num">{stats_cards['all_total']}</div></div>
+                        <div class="card"><h4>Νέες Ενεργ.</h4><div class="num">{stats_cards['active_new']}</div></div>
+                        <div class="card"><h4>Νέες Σύνολ.</h4><div class="num">{stats_cards['all_new']}</div></div>
+                        <div class="card"><h4>Αιτήσεις</h4><div class="num">{stats_cards['incoming_total']}</div></div>
+                        <div class="card"><h4>Πραγμ.</h4><div class="num">{stats_cards['incoming_real']}</div></div>
+                        <div class="card"><h4>Δοκιμ.</h4><div class="num">{stats_cards['incoming_test']}</div></div>
                     </div>
                 </div>
 
                 <div class="section">
                     <h3>Αλλαγές Ενεργών Διαδικασιών</h3>
-                    <div class="sub">Baseline: {esc((digest.get('active') or {}).get('baseline_timestamp') or '—')}</div>
+                    <div class="sub"><b>Baseline:</b> {esc((digest.get('active') or {}).get('baseline_timestamp') or '—')}</div>
                     <table>
                         <tr><th>Τύπος</th><th>Κωδικός</th><th>Τίτλος</th><th>Ενεργή</th></tr>
                         {render_proc_rows((active_changes or {}).get('new', []), 'Νέα')}
-                        {render_proc_rows((active_changes or {}).get('activated', []), 'Ενεργοποιήθηκαν')}
-                        {render_proc_rows((active_changes or {}).get('deactivated', []), 'Απενεργοποιήθηκαν')}
-                        {render_proc_rows((active_changes or {}).get('removed', []), 'Αφαιρέθηκαν')}
-                        {render_proc_rows((active_changes or {}).get('modified', []), 'Τροποποιήθηκαν')}
+                        {render_proc_rows((active_changes or {}).get('activated', []), 'Ενεργ.')}
+                        {render_proc_rows((active_changes or {}).get('deactivated', []), 'Απενεργ.')}
+                        {render_proc_rows((active_changes or {}).get('modified', []), 'Τροποπ.')}
                     </table>
                 </div>
 
                 <div class="section">
                     <h3>Αλλαγές Συνόλου Διαδικασιών</h3>
-                    <div class="sub">Baseline: {esc((digest.get('all') or {}).get('baseline_timestamp') or '—')}</div>
+                    <div class="sub"><b>Baseline:</b> {esc((digest.get('all') or {}).get('baseline_timestamp') or '—')}</div>
                     <table>
                         <tr><th>Τύπος</th><th>Κωδικός</th><th>Τίτλος</th><th>Ενεργή</th></tr>
-                        {render_proc_rows((all_changes or {}).get('new', []), 'Νέες')}
-                        {render_proc_rows((all_changes or {}).get('activated', []), 'Ενεργοποιήθηκαν')}
-                        {render_proc_rows((all_changes or {}).get('deactivated', []), 'Απενεργοποιήθηκαν')}
-                        {render_proc_rows((all_changes or {}).get('removed', []), 'Αφαιρέθηκαν')}
-                        {render_proc_rows((all_changes or {}).get('modified', []), 'Τροποποιήθηκαν')}
+                        {render_proc_rows((all_changes or {}).get('new', []), 'Νέα')}
+                        {render_proc_rows((all_changes or {}).get('activated', []), 'Ενεργ.')}
+                        {render_proc_rows((all_changes or {}).get('deactivated', []), 'Απενεργ.')}
+                        {render_proc_rows((all_changes or {}).get('modified', []), 'Τροποπ.')}
                     </table>
                 </div>
 
                 <div class="section">
-                    <h3>Εισερχόμενες Αιτήσεις ({esc(incoming.get('date', ''))})</h3>
-                    <div class="sub">Σύγκριση με: {esc(incoming.get('reference_date') or 'πρώτη καταγραφή')}</div>
-                    <h4>Νέες Πραγματικές</h4>
+                    <h3>Εισερχόμενες Αιτήσεις</h3>
+                    <div class="sub"><b>Σημερινή ημερομηνία:</b> {esc(incoming.get('date', ''))} | <b>Σύγκριση με:</b> {esc(incoming.get('reference_date') or 'πρώτη καταγραφή')}</div>
+                    
+                    <h4>Νέες Πραγματικές ({len(incoming.get('real_new', []))})</h4>
                     <table>
-                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
                         {render_incoming_rows(incoming.get('real_new', []), '✅')}
                     </table>
-                    <h4>Νέες Δοκιμαστικές</h4>
+                    
+                    <h4 style="margin-top: 8px;">Νέες Δοκιμαστικές ({len(incoming.get('test_new', []))})</h4>
                     <table>
-                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
                         {render_incoming_rows(incoming.get('test_new', []), '🧪')}
                     </table>
-                    <h4>Αφαιρέθηκαν</h4>
+                    
+                    <h4 style="margin-top: 8px;">Αφαιρέθηκαν ({len(incoming_changes.get('removed', []))})</h4>
                     <table>
-                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
                         {render_incoming_rows(incoming_changes.get('removed', []), '🗑️')}
                     </table>
-                    <h4>Τροποποιήθηκαν</h4>
-                    <table>
-                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
-                        {render_incoming_rows([m.get('new', {}) for m in incoming_changes.get('modified', [])], '🔄')}
-                    </table>
+                </div>
+
+                <div class="footer">
+                    <p style="margin: 0;">Αυτό είναι ένα αυτοματοποιημένο μήνυμα από το Σύστημα Παρακολούθησης Ιστοτόπων</p>
                 </div>
             </body>
         </html>
@@ -532,8 +514,170 @@ class EmailNotifier:
         for admin in self.load_admins():
             if self.send_email(admin['email'], subject, body):
                 sent += 1
+        
+        # Δημιουργία PDF
+        pdf_path = self.generate_daily_report_pdf(digest)
+        
         print(f"Daily digest sent to {sent} admin(s)")
         return sent > 0
+
+    def generate_daily_report_pdf(self, digest: Dict, pdf_path: str = None) -> str:
+        """Δημιουργεί PDF αναφοράς από το digest."""
+        try:
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib import colors
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            print("⚠️  reportlab not installed. Skipping PDF generation.")
+            return None
+
+        if pdf_path is None:
+            pdf_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "data",
+                f"daily_report_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.pdf"
+            )
+
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+
+        # Δεδομένα
+        incoming = digest.get('incoming', {})
+        incoming_changes = incoming.get('changes', {})
+        active_changes = (digest.get('active') or {}).get('changes')
+        all_changes = (digest.get('all') or {}).get('changes')
+
+        def count_changes(changes, key):
+            return len(changes.get(key, [])) if changes else 0
+
+        try:
+            doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+            story = []
+            styles = getSampleStyleSheet()
+
+            # Header
+            title = Paragraph(
+                "ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ",
+                styles['Title']
+            )
+            story.append(title)
+
+            timestamp = Paragraph(
+                f"<b>Δημιουργία:</b> {digest.get('generated_at', '')}<br/>"
+                f"<b>URL:</b> {digest.get('base_url', '')}<br/>"
+                f"<b>Σύγκριση Εισερχόμενων:</b> {incoming.get('reference_date') or 'πρώτη καταγραφή'} → {incoming.get('date', '')}",
+                styles['Normal']
+            )
+            story.append(timestamp)
+            story.append(Spacer(1, 0.2*inch))
+
+            # Σύνοψη
+            summary_data = [
+                ["Μέτρο", "Τιμή"],
+                ["Ενεργές διαδικασίες", str(digest.get('active', {}).get('total', 0))],
+                ["Σύνολο διαδικασιών", str(digest.get('all', {}).get('total', 0))],
+                ["Νέες ενεργές", str(count_changes(active_changes or {}, 'new'))],
+                ["Νέες συνολικές", str(count_changes(all_changes or {}, 'new'))],
+                ["Συνολικές αιτήσεις", str(incoming.get('stats', {}).get('total', 0))],
+                ["Πραγματικές αιτήσεις", str(incoming.get('stats', {}).get('real', 0))],
+                ["Δοκιμαστικές αιτήσεις", str(incoming.get('stats', {}).get('test', 0))],
+            ]
+
+            summary_table = Table(summary_data, colWidths=[3.5*inch, 1.5*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d47a1')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f4ff')]),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ]))
+            story.append(Paragraph("<b>Σύνοψη</b>", styles['Heading2']))
+            story.append(summary_table)
+            story.append(Spacer(1, 0.2*inch))
+
+            # Αλλαγές ενεργών
+            if active_changes and any(active_changes.values()):
+                story.append(Paragraph("<b>Αλλαγές Ενεργών Διαδικασιών</b>", styles['Heading2']))
+                for change_type, label in [('new', 'Νέες'), ('activated', 'Ενεργοποιήθηκαν'), ('modified', 'Τροποποιήθηκαν')]:
+                    items = active_changes.get(change_type, [])
+                    if items:
+                        story.append(Paragraph(f"<i>{label} ({len(items)})</i>", styles['Normal']))
+                        proc_data = [[f"{label[:1]}", "Κωδ.", "Τίτλος"]]
+                        for item in items:
+                            proc = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
+                            proc_data.append([
+                                "✓",
+                                proc.get('κωδικός', '')[:10],
+                                proc.get('τίτλος', '')[:40]
+                            ])
+                        proc_table = Table(proc_data, colWidths=[0.3*inch, 0.8*inch, 4.4*inch])
+                        proc_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f4ff')),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('FONTSIZE', (0, 0), (-1, -1), 8),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ]))
+                        story.append(proc_table)
+                story.append(Spacer(1, 0.15*inch))
+
+            # Εισερχόμενες αιτήσεις
+            if incoming.get('real_new') or incoming.get('test_new'):
+                story.append(Paragraph("<b>Εισερχόμενες Αιτήσεις</b>", styles['Heading2']))
+
+                # Πραγματικές
+                real_new = incoming.get('real_new', [])
+                if real_new:
+                    story.append(Paragraph(f"<i>Νέες Πραγματικές ({len(real_new)})</i>", styles['Normal']))
+                    real_data = [["Case ID", "Ημερ.", "Θέμα", "Συναλλ."]]
+                    for rec in real_new:
+                        real_data.append([
+                            rec.get('case_id', '')[:15],
+                            rec.get('submitted_at', '')[:10],
+                            rec.get('subject', '')[:30],
+                            rec.get('party', '')[:25]
+                        ])
+                    real_table = Table(real_data, colWidths=[1.2*inch, 1*inch, 1.5*inch, 1.3*inch])
+                    real_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ]))
+                    story.append(real_table)
+                    story.append(Spacer(1, 0.1*inch))
+
+                # Δοκιμαστικές
+                test_new = incoming.get('test_new', [])
+                if test_new:
+                    story.append(Paragraph(f"<i>Νέες Δοκιμαστικές ({len(test_new)})</i>", styles['Normal']))
+                    test_data = [["Case ID", "Ημερ.", "Θέμα", "Συναλλ."]]
+                    for rec in test_new:
+                        test_data.append([
+                            rec.get('case_id', '')[:15],
+                            rec.get('submitted_at', '')[:10],
+                            rec.get('subject', '')[:30],
+                            rec.get('party', '')[:25]
+                        ])
+                    test_table = Table(test_data, colWidths=[1.2*inch, 1*inch, 1.5*inch, 1.3*inch])
+                    test_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fff3e0')),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ]))
+                    story.append(test_table)
+
+            doc.build(story)
+            print(f"✅ PDF αναφορά δημιουργήθηκε: {pdf_path}")
+            return pdf_path
+
+        except Exception as e:
+            print(f"❌ Σφάλμα δημιουργίας PDF: {e}")
+            return None
 
 
 # Example usage

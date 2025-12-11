@@ -154,6 +154,15 @@
             "args": ["--check-incoming-portal", "--analyze-current"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Monitor - Send Daily Email",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["--send-daily-email"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ],
     "inputs": [
