@@ -28,12 +28,26 @@ def print_summary(digest: dict):
 
     print("📊 ΣΥΝΟΨΗ")
     print("-" * 100)
+    
+    # Πρώτη γραμμή: Συνολικά στοιχεία
     print(f"  Ενεργές διαδικασίες: {active_data.get('total', 0):4d}  │  "
-          f"Σύνολο: {all_data.get('total', 0):4d}  │  "
-          f"Αιτήσεις: {incoming_data.get('stats', {}).get('total', 0):4d}")
-    print(f"  Νέες ενεργές: {count_changes(active_changes, 'new'):4d}  │  "
-          f"Νέες σύνολο: {count_changes(all_changes, 'new'):4d}  │  "
-          f"Πραγματικές/Δοκιμ.: {incoming_data.get('stats', {}).get('real', 0)}/{incoming_data.get('stats', {}).get('test', 0)}")
+          f"Σύνολο διαδικασιών: {all_data.get('total', 0):4d}  │  "
+          f"Εισερχόμενες αιτήσεις: {incoming_data.get('stats', {}).get('total', 0):4d}")
+    
+    # Δεύτερη γραμμή: Ημερομηνίες σύγκρισης
+    active_ref = active_data.get('baseline_timestamp', '')[:10] if active_data.get('baseline_timestamp') else '—'
+    all_ref = all_data.get('baseline_timestamp', '')[:10] if all_data.get('baseline_timestamp') else '—'
+    incoming_ref = incoming_data.get('reference_date', '—')
+    
+    print(f"  Σύγκριση με:         {active_ref}  │  "
+          f"                   {all_ref}  │  "
+          f"                       {incoming_ref}")
+    
+    # Τρίτη γραμμή: Αλλαγές
+    print(f"  Νέες ενεργές:        {count_changes(active_changes, 'new'):4d}  │  "
+          f"Νέες διαδικασίες:  {count_changes(all_changes, 'new'):4d}  │  "
+          f"Νέες: {len(incoming_data.get('real_new', []))}/{len(incoming_data.get('test_new', []))} (πραγμ./δοκιμ.)")
+    
     print()
 
 

@@ -446,14 +446,20 @@ class EmailNotifier:
 
                 <div class="section">
                     <h3>Σύνοψη</h3>
+                    <div class="sub" style="margin-bottom: 8px;">
+                        <b>Σύγκριση με:</b> 
+                        Ενεργές: {esc((digest.get('active') or {}).get('baseline_timestamp', '—')[:10])} │ 
+                        Σύνολο: {esc((digest.get('all') or {}).get('baseline_timestamp', '—')[:10])} │ 
+                        Αιτήσεις: {esc(incoming.get('reference_date', '—'))}
+                    </div>
                     <div class="cards">
-                        <div class="card"><h4>Ενεργές</h4><div class="num">{stats_cards['active_total']}</div></div>
-                        <div class="card"><h4>Σύνολο</h4><div class="num">{stats_cards['all_total']}</div></div>
-                        <div class="card"><h4>Νέες Ενεργ.</h4><div class="num">{stats_cards['active_new']}</div></div>
-                        <div class="card"><h4>Νέες Σύνολ.</h4><div class="num">{stats_cards['all_new']}</div></div>
-                        <div class="card"><h4>Αιτήσεις</h4><div class="num">{stats_cards['incoming_total']}</div></div>
-                        <div class="card"><h4>Πραγμ.</h4><div class="num">{stats_cards['incoming_real']}</div></div>
-                        <div class="card"><h4>Δοκιμ.</h4><div class="num">{stats_cards['incoming_test']}</div></div>
+                        <div class="card"><h4>Ενεργές Διαδικ.</h4><div class="num">{stats_cards['active_total']}</div></div>
+                        <div class="card"><h4>Σύνολο Διαδικ.</h4><div class="num">{stats_cards['all_total']}</div></div>
+                        <div class="card"><h4>Εισερχ. Αιτήσεις</h4><div class="num">{stats_cards['incoming_total']}</div></div>
+                        <div class="card"><h4>Νέες Ενεργές</h4><div class="num">{stats_cards['active_new']}</div></div>
+                        <div class="card"><h4>Νέες Διαδικ.</h4><div class="num">{stats_cards['all_new']}</div></div>
+                        <div class="card"><h4>Νέες Πραγμ.</h4><div class="num">{len(incoming.get('real_new', []))}</div></div>
+                        <div class="card"><h4>Νέες Δοκιμ.</h4><div class="num">{len(incoming.get('test_new', []))}</div></div>
                     </div>
                 </div>
 
@@ -573,15 +579,24 @@ class EmailNotifier:
             story.append(Spacer(1, 0.2*inch))
 
             # Σύνοψη
+            active_ref = digest.get('active', {}).get('baseline_timestamp', '')[:10] if digest.get('active', {}).get('baseline_timestamp') else '—'
+            all_ref = digest.get('all', {}).get('baseline_timestamp', '')[:10] if digest.get('all', {}).get('baseline_timestamp') else '—'
+            incoming_ref = incoming.get('reference_date', '—')
+            
             summary_data = [
                 ["Μέτρο", "Τιμή"],
                 ["Ενεργές διαδικασίες", str(digest.get('active', {}).get('total', 0))],
                 ["Σύνολο διαδικασιών", str(digest.get('all', {}).get('total', 0))],
-                ["Νέες ενεργές", str(count_changes(active_changes or {}, 'new'))],
-                ["Νέες συνολικές", str(count_changes(all_changes or {}, 'new'))],
-                ["Συνολικές αιτήσεις", str(incoming.get('stats', {}).get('total', 0))],
-                ["Πραγματικές αιτήσεις", str(incoming.get('stats', {}).get('real', 0))],
-                ["Δοκιμαστικές αιτήσεις", str(incoming.get('stats', {}).get('test', 0))],
+                ["Εισερχόμενες αιτήσεις", str(incoming.get('stats', {}).get('total', 0))],
+                ["─────────────────", "──────────"],
+                ["Σύγκριση ενεργών με", active_ref],
+                ["Σύγκριση συνόλου με", all_ref],
+                ["Σύγκριση αιτήσεων με", incoming_ref],
+                ["─────────────────", "──────────"],
+                ["Νέες ενεργές διαδικασίες", str(count_changes(active_changes or {}, 'new'))],
+                ["Νέες συνολικές διαδικασίες", str(count_changes(all_changes or {}, 'new'))],
+                ["Νέες πραγματικές αιτήσεις", str(len(incoming.get('real_new', [])))],
+                ["Νέες δοκιμαστικές αιτήσεις", str(len(incoming.get('test_new', [])))],
             ]
 
             summary_table = Table(summary_data, colWidths=[3.5*inch, 1.5*inch])
