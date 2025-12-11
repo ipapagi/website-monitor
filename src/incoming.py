@@ -136,9 +136,21 @@ def merge_with_previous_snapshot(current_records, previous_snapshot):
     # Dict με τρέχουσες εγγραφές
     current_dict = {r['case_id']: r for r in current_records if r.get('case_id')}
     
+    # Dict με προηγούμενες εγγραφές
+    prev_records = previous_snapshot.get('records', [])
+    prev_dict = {r.get('case_id'): r for r in prev_records if r.get('case_id')}
+    
+    # Ενημέρωση: αν η τρέχουσα εγγραφή υπάρχει και στο προηγούμενο, κρατάμε τα πλήρη δεδομένα
+    for case_id, curr_rec in current_dict.items():
+        if case_id in prev_dict:
+            prev_rec = prev_dict[case_id]
+            # Συμπληρώνουμε κενά πεδία από το προηγούμενο
+            for field in ['protocol_number', 'procedure', 'directory']:
+                if not curr_rec.get(field) and prev_rec.get(field):
+                    curr_rec[field] = prev_rec.get(field)
+    
     # Πρόσθεσε εγγραφές από το προηγούμενο snapshot που δεν υπάρχουν στις τρέχουσες
     # (παλαιότερες που έφυγαν από το API limit αλλά δεν έχουν διαγραφεί)
-    prev_records = previous_snapshot.get('records', [])
     for prev_rec in prev_records:
         case_id = prev_rec.get('case_id')
         if case_id and case_id not in current_dict:
