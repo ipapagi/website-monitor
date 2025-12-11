@@ -21,6 +21,7 @@ class EmailNotifier:
         self.email_password = os.getenv("EMAIL_PASSWORD")
         self.smtp_server = os.getenv("EMAIL_SMTP_SERVER")
         self.smtp_port = int(os.getenv("EMAIL_SMTP_PORT", 465))
+        self.use_tls = os.getenv("EMAIL_USE_TLS", "false").lower() == "true"
         
         # Resolve admins file path
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -79,10 +80,17 @@ class EmailNotifier:
             msg.attach(html_part)
             
             # Connect to SMTP server and send
-            with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
-                server.login(self.email_address, self.email_password)
-                server.send_message(msg)
-            
+            if self.use_tls:
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.login(self.email_address, self.email_password)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                    server.login(self.email_address, self.email_password)
+                    server.send_message(msg)
+
             print(f"Email sent successfully to {to_email}")
             return True
             
