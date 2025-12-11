@@ -387,10 +387,25 @@ class EmailNotifier:
 
         def render_incoming_rows(records, icon):
             if not records:
-                return "<tr style='height: 0;'><td colspan='5'>—</td></tr>"
+                return ""
             rows = ""
             for rec in records:
-                rows += f"<tr style='height: 0;'><td>{icon}</td><td>{esc(rec.get('case_id', ''))[:15]}</td><td>{esc(rec.get('submitted_at', '')[:10])}</td><td>{esc(rec.get('subject', ''))[:30]}</td><td>{esc(rec.get('party', ''))[:25]}</td></tr>"
+                case_id = esc(rec.get('case_id', ''))
+                protocol = esc(rec.get('protocol_number', ''))
+                submitted = esc(rec.get('submitted_at', '')[:10])
+                procedure = esc(rec.get('procedure', ''))
+                directory = esc(rec.get('directory', ''))
+                party = esc(rec.get('party', ''))
+                doc_category = esc(rec.get('document_category', ''))
+                
+                rows += f"""<div style='background: #fafafa; border-left: 4px solid #1976d2; margin: 8px 0; padding: 8px;'>
+                    <div style='margin: 3px 0; font-size: 12px;'>
+                        <strong>{icon} Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</strong>
+                    </div>
+                    <div style='margin: 3px 0; font-size: 11px;'><strong>📋 Διαδικασία:</strong> {procedure}</div>
+                    <div style='margin: 3px 0; font-size: 11px;'><strong>🏢 Δ/νση:</strong> {directory}</div>
+                    <div style='margin: 3px 0; font-size: 11px;'><strong>👤 Συναλλασσόμενος:</strong> {party}</div>
+                </div>"""
             return rows
 
         incoming = digest.get('incoming', {})
@@ -481,26 +496,23 @@ class EmailNotifier:
                 </div>
 
                 <div class="section">
-                    <h3>Εισερχόμενες Αιτήσεις</h3>
+                    <h3>🔁 Σύγκριση με snapshot {esc(incoming.get('reference_date', ''))}</h3>
                     <div class="sub"><b>Σημερινή ημερομηνία:</b> {esc(incoming.get('date', ''))} | <b>Σύγκριση με:</b> {esc(incoming.get('reference_date') or 'πρώτη καταγραφή')}</div>
                     
-                    <h4>Νέες Πραγματικές ({len(incoming.get('real_new', []))})</h4>
-                    <table>
-                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
-                        {render_incoming_rows(incoming.get('real_new', []), '✅')}
-                    </table>
+                    <h4 style="margin-top: 12px;">🆕 Νέες ΠΡΑΓΜΑΤΙΚΕΣ αιτήσεις ({len(incoming.get('real_new', []))})</h4>
+                    <div style='border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0;'>
+                        {render_incoming_rows(incoming.get('real_new', []), '✅') or '<div style="color: #999; font-size: 11px;">—</div>'}
+                    </div>
                     
-                    <h4 style="margin-top: 8px;">Νέες Δοκιμαστικές ({len(incoming.get('test_new', []))})</h4>
-                    <table>
-                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
-                        {render_incoming_rows(incoming.get('test_new', []), '🧪')}
-                    </table>
+                    <h4 style="margin-top: 12px;">🧪 Νέες ΔΟΚΙΜΑΣΤΙΚΕΣ αιτήσεις ({len(incoming.get('test_new', []))})</h4>
+                    <div style='border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0;'>
+                        {render_incoming_rows(incoming.get('test_new', []), '🧪') or '<div style="color: #999; font-size: 11px;">—</div>'}
+                    </div>
                     
-                    <h4 style="margin-top: 8px;">Αφαιρέθηκαν ({len(incoming_changes.get('removed', []))})</h4>
-                    <table>
-                        <tr><th></th><th>Case ID</th><th>Ημερ.</th><th>Θέμα</th><th>Συναλλ.</th></tr>
-                        {render_incoming_rows(incoming_changes.get('removed', []), '🗑️')}
-                    </table>
+                    <h4 style="margin-top: 12px;">🗑️ Αφαιρέθηκαν αιτήσεις ({len(incoming_changes.get('removed', []))})</h4>
+                    <div style='border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 8px 0;'>
+                        {render_incoming_rows(incoming_changes.get('removed', []), '🗑️') or '<div style="color: #999; font-size: 11px;">—</div>'}
+                    </div>
                 </div>
 
                 <div class="footer">
@@ -553,7 +565,8 @@ class EmailNotifier:
             return len(changes.get(key, [])) if changes else 0
 
         try:
-            doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+            from reportlab.lib.pagesizes import letter, A4, landscape
+            doc = SimpleDocTemplate(pdf_path, pagesize=landscape(A4))
             story = []
             styles = getSampleStyleSheet()
 
@@ -627,49 +640,96 @@ class EmailNotifier:
                 story.append(Spacer(1, 0.15*inch))
 
             # Εισερχόμενες αιτήσεις
-            if incoming.get('real_new') or incoming.get('test_new'):
-                story.append(Paragraph("<b>Εισερχόμενες Αιτήσεις</b>", styles['Heading2']))
+            if incoming.get('real_new') or incoming.get('test_new') or incoming_changes.get('removed'):
+                story.append(Paragraph("<b>🔁 Σύγκριση με snapshot {}</b>".format(incoming.get('reference_date', '')), styles['Heading2']))
+                story.append(Paragraph(f"<b>Σημερινή ημερομηνία:</b> {incoming.get('date', '')} | <b>Σύγκριση με:</b> {incoming.get('reference_date') or 'πρώτη καταγραφή'}", styles['Normal']))
+                story.append(Spacer(1, 0.1*inch))
 
                 # Πραγματικές
                 real_new = incoming.get('real_new', [])
                 if real_new:
-                    story.append(Paragraph(f"<i>Νέες Πραγματικές ({len(real_new)})</i>", styles['Normal']))
-                    real_data = [["Case ID", "Ημερ.", "Θέμα", "Συναλλ."]]
-                    for rec in real_new:
-                        real_data.append([
-                            rec.get('case_id', '')[:15],
-                            rec.get('submitted_at', '')[:10],
-                            rec.get('subject', '')[:30],
-                            rec.get('party', '')[:25]
-                        ])
-                    real_table = Table(real_data, colWidths=[1.2*inch, 1*inch, 1.5*inch, 1.3*inch])
-                    real_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ]))
-                    story.append(real_table)
+                    story.append(Paragraph(f"<b>🆕 Νέες ΠΡΑΓΜΑΤΙΚΕΣ αιτήσεις ({len(real_new)})</b>", styles['Heading3']))
+                    story.append(Paragraph("─" * 120, styles['Normal']))
+                    
+                    for idx, rec in enumerate(real_new, 1):
+                        case_id = rec.get('case_id', '')
+                        protocol = rec.get('protocol_number', '')
+                        submitted = rec.get('submitted_at', '')[:10]
+                        procedure = rec.get('procedure', '')
+                        directory = rec.get('directory', '')
+                        party = rec.get('party', '')
+                        doc_category = rec.get('document_category', '')
+                        
+                        story.append(Paragraph(
+                            f"<b>✅ Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
+                            styles['Normal']
+                        ))
+                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
+                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
+                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        story.append(Spacer(1, 0.08*inch))
+                    
                     story.append(Spacer(1, 0.1*inch))
 
                 # Δοκιμαστικές
                 test_new = incoming.get('test_new', [])
                 if test_new:
-                    story.append(Paragraph(f"<i>Νέες Δοκιμαστικές ({len(test_new)})</i>", styles['Normal']))
-                    test_data = [["Case ID", "Ημερ.", "Θέμα", "Συναλλ."]]
-                    for rec in test_new:
-                        test_data.append([
-                            rec.get('case_id', '')[:15],
-                            rec.get('submitted_at', '')[:10],
-                            rec.get('subject', '')[:30],
-                            rec.get('party', '')[:25]
-                        ])
-                    test_table = Table(test_data, colWidths=[1.2*inch, 1*inch, 1.5*inch, 1.3*inch])
-                    test_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fff3e0')),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ]))
-                    story.append(test_table)
+                    story.append(Paragraph(f"<b>🧪 Νέες ΔΟΚΙΜΑΣΤΙΚΕΣ αιτήσεις ({len(test_new)})</b>", styles['Heading3']))
+                    story.append(Paragraph("─" * 120, styles['Normal']))
+                    
+                    for idx, rec in enumerate(test_new, 1):
+                        case_id = rec.get('case_id', '')
+                        protocol = rec.get('protocol_number', '')
+                        submitted = rec.get('submitted_at', '')[:10]
+                        procedure = rec.get('procedure', '')
+                        directory = rec.get('directory', '')
+                        party = rec.get('party', '')
+                        doc_category = rec.get('document_category', '')
+                        
+                        story.append(Paragraph(
+                            f"<b>🧪 Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
+                            styles['Normal']
+                        ))
+                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
+                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
+                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        story.append(Spacer(1, 0.08*inch))
+                    
+                    story.append(Spacer(1, 0.1*inch))
+
+                # Αφαιρέθηκαν
+                removed = incoming_changes.get('removed', [])
+                if removed:
+                    story.append(Paragraph(f"<b>🗑️ Αφαιρέθηκαν αιτήσεις ({len(removed)})</b>", styles['Heading3']))
+                    story.append(Paragraph("─" * 120, styles['Normal']))
+                    
+                    for idx, rec in enumerate(removed, 1):
+                        case_id = rec.get('case_id', '')
+                        protocol = rec.get('protocol_number', '')
+                        submitted = rec.get('submitted_at', '')[:10]
+                        procedure = rec.get('procedure', '')
+                        directory = rec.get('directory', '')
+                        party = rec.get('party', '')
+                        doc_category = rec.get('document_category', '')
+                        
+                        story.append(Paragraph(
+                            f"<b>🗑️ Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
+                            styles['Normal']
+                        ))
+                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
+                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
+                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        story.append(Spacer(1, 0.08*inch))
+
+                # Σύνοψη νέων
+                real_count = len(incoming.get('real_new', []))
+                test_count = len(incoming.get('test_new', []))
+                removed_count = len(incoming_changes.get('removed', []))
+                story.append(Spacer(1, 0.1*inch))
+                story.append(Paragraph(
+                    f"<b>📊 Σύνοψη νέων:</b> {real_count} πραγματικές, {test_count} δοκιμαστικές, {removed_count} αφαιρέθηκαν",
+                    styles['Normal']
+                ))
 
             doc.build(story)
             print(f"✅ PDF αναφορά δημιουργήθηκε: {pdf_path}")
