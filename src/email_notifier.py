@@ -362,6 +362,179 @@ class EmailNotifier:
         
         print(f"Daily report sent to {sent_count} admin(s)")
 
+    def send_daily_digest(self, digest: Dict) -> bool:
+        """Στέλνει αναλυτικό ημερήσια αναφορά (διαδικασίες + εισερχόμενα)."""
+        if not self.is_enabled():
+            print("Email notifications are disabled")
+            return False
+
+        def esc(val):
+            import html
+
+            return html.escape(str(val)) if val is not None else ""
+
+        def render_proc_rows(changes, label):
+            rows = ""
+            if not changes:
+                return "<tr><td colspan='4'>—</td></tr>"
+            for item in changes:
+                proc = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
+                code = esc(proc.get('κωδικός', ''))
+                title = esc(proc.get('τίτλος', ''))
+                status = esc(proc.get('ενεργή', ''))
+                rows += f"""
+                <tr>
+                    <td>{esc(label)}</td>
+                    <td>{code}</td>
+                    <td>{title}</td>
+                    <td>{status}</td>
+                </tr>
+                """
+            return rows or "<tr><td colspan='4'>—</td></tr>"
+
+        def render_incoming_rows(records, icon):
+            if not records:
+                return "<tr><td colspan='5'>—</td></tr>"
+            rows = ""
+            for rec in records:
+                rows += f"""
+                <tr>
+                    <td>{icon}</td>
+                    <td>{esc(rec.get('case_id', ''))}</td>
+                    <td>{esc(rec.get('submitted_at', '')[:16])}</td>
+                    <td>{esc(rec.get('subject', ''))}</td>
+                    <td>{esc(rec.get('party', ''))}</td>
+                </tr>
+                """
+            return rows
+
+        incoming = digest.get('incoming', {})
+        incoming_changes = incoming.get('changes', {})
+        active_changes = (digest.get('active') or {}).get('changes')
+        all_changes = (digest.get('all') or {}).get('changes')
+
+        def count_changes(changes, key):
+            return len(changes.get(key, [])) if changes else 0
+
+        stats_cards = {
+            'active_total': digest.get('active', {}).get('total', 0),
+            'all_total': digest.get('all', {}).get('total', 0),
+            'active_new': count_changes(active_changes or {}, 'new'),
+            'active_mod': count_changes(active_changes or {}, 'modified'),
+            'all_new': count_changes(all_changes or {}, 'new'),
+            'all_mod': count_changes(all_changes or {}, 'modified'),
+            'incoming_total': incoming.get('stats', {}).get('total', 0),
+            'incoming_real': incoming.get('stats', {}).get('real', 0),
+            'incoming_test': incoming.get('stats', {}).get('test', 0),
+            'incoming_removed': count_changes(incoming_changes or {}, 'removed'),
+        }
+
+        subject = f"Ημερήσια Αναφορά ΣΗΔΕ – {datetime.now().strftime('%d/%m/%Y')}"
+
+        body = f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; line-height: 1.6; }}
+                    .header {{ background: linear-gradient(90deg, #0d47a1, #1976d2); color: #fff; padding: 20px; text-align: center; }}
+                    .section {{ background: #fff; margin: 15px 0; padding: 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }}
+                    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }}
+                    .card {{ background: #f5f7fb; border-radius: 6px; padding: 12px; text-align: center; }}
+                    .card h4 {{ margin: 0; color: #555; font-size: 13px; }}
+                    .card .num {{ font-size: 28px; font-weight: 700; color: #0d47a1; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                    th, td {{ border: 1px solid #e0e0e0; padding: 8px; text-align: left; font-size: 13px; }}
+                    th {{ background: #f0f4ff; color: #0d47a1; }}
+                    .pill {{ display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }}
+                    .pill-green {{ background: #e8f5e9; color: #2e7d32; }}
+                    .pill-red {{ background: #ffebee; color: #c62828; }}
+                    .pill-blue {{ background: #e3f2fd; color: #1565c0; }}
+                    .sub {{ color: #666; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ</h2>
+                    <div>{esc(digest.get('generated_at', ''))} – {esc(digest.get('base_url', ''))}</div>
+                </div>
+
+                <div class="section">
+                    <h3>Σύνοψη</h3>
+                    <div class="cards">
+                        <div class="card"><h4>Ενεργές διαδικασίες</h4><div class="num">{stats_cards['active_total']}</div></div>
+                        <div class="card"><h4>Σύνολο διαδικασιών</h4><div class="num">{stats_cards['all_total']}</div></div>
+                        <div class="card"><h4>Νέες ενεργές</h4><div class="num">{stats_cards['active_new']}</div></div>
+                        <div class="card"><h4>Τροποποιήσεις ενεργών</h4><div class="num">{stats_cards['active_mod']}</div></div>
+                        <div class="card"><h4>Νέες συνολικές</h4><div class="num">{stats_cards['all_new']}</div></div>
+                        <div class="card"><h4>Τροποποιήσεις συνολικών</h4><div class="num">{stats_cards['all_mod']}</div></div>
+                        <div class="card"><h4>Αιτήσεις (σύνολο)</h4><div class="num">{stats_cards['incoming_total']}</div></div>
+                        <div class="card"><h4>Πραγματικές</h4><div class="num">{stats_cards['incoming_real']}</div></div>
+                        <div class="card"><h4>Δοκιμαστικές</h4><div class="num">{stats_cards['incoming_test']}</div></div>
+                        <div class="card"><h4>Αφαιρέθηκαν</h4><div class="num">{stats_cards['incoming_removed']}</div></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Αλλαγές Ενεργών Διαδικασιών</h3>
+                    <div class="sub">Baseline: {esc((digest.get('active') or {}).get('baseline_timestamp') or '—')}</div>
+                    <table>
+                        <tr><th>Τύπος</th><th>Κωδικός</th><th>Τίτλος</th><th>Ενεργή</th></tr>
+                        {render_proc_rows((active_changes or {}).get('new', []), 'Νέα')}
+                        {render_proc_rows((active_changes or {}).get('activated', []), 'Ενεργοποιήθηκαν')}
+                        {render_proc_rows((active_changes or {}).get('deactivated', []), 'Απενεργοποιήθηκαν')}
+                        {render_proc_rows((active_changes or {}).get('removed', []), 'Αφαιρέθηκαν')}
+                        {render_proc_rows((active_changes or {}).get('modified', []), 'Τροποποιήθηκαν')}
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h3>Αλλαγές Συνόλου Διαδικασιών</h3>
+                    <div class="sub">Baseline: {esc((digest.get('all') or {}).get('baseline_timestamp') or '—')}</div>
+                    <table>
+                        <tr><th>Τύπος</th><th>Κωδικός</th><th>Τίτλος</th><th>Ενεργή</th></tr>
+                        {render_proc_rows((all_changes or {}).get('new', []), 'Νέες')}
+                        {render_proc_rows((all_changes or {}).get('activated', []), 'Ενεργοποιήθηκαν')}
+                        {render_proc_rows((all_changes or {}).get('deactivated', []), 'Απενεργοποιήθηκαν')}
+                        {render_proc_rows((all_changes or {}).get('removed', []), 'Αφαιρέθηκαν')}
+                        {render_proc_rows((all_changes or {}).get('modified', []), 'Τροποποιήθηκαν')}
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h3>Εισερχόμενες Αιτήσεις ({esc(incoming.get('date', ''))})</h3>
+                    <div class="sub">Σύγκριση με: {esc(incoming.get('reference_date') or 'πρώτη καταγραφή')}</div>
+                    <h4>Νέες Πραγματικές</h4>
+                    <table>
+                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        {render_incoming_rows(incoming.get('real_new', []), '✅')}
+                    </table>
+                    <h4>Νέες Δοκιμαστικές</h4>
+                    <table>
+                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        {render_incoming_rows(incoming.get('test_new', []), '🧪')}
+                    </table>
+                    <h4>Αφαιρέθηκαν</h4>
+                    <table>
+                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        {render_incoming_rows(incoming_changes.get('removed', []), '🗑️')}
+                    </table>
+                    <h4>Τροποποιήθηκαν</h4>
+                    <table>
+                        <tr><th></th><th>Case ID</th><th>Υποβλήθηκε</th><th>Θέμα</th><th>Συναλλασσόμενος</th></tr>
+                        {render_incoming_rows([m.get('new', {}) for m in incoming_changes.get('modified', [])], '🔄')}
+                    </table>
+                </div>
+            </body>
+        </html>
+        """
+
+        sent = 0
+        for admin in self.load_admins():
+            if self.send_email(admin['email'], subject, body):
+                sent += 1
+        print(f"Daily digest sent to {sent} admin(s)")
+        return sent > 0
+
 
 # Example usage
 if __name__ == "__main__":
