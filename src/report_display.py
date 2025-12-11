@@ -1,5 +1,6 @@
 """Εμφάνιση ημερήσιας αναφοράς στο terminal"""
 from datetime import datetime
+from formatters import format_incoming_record_text
 
 
 def print_digest_header(digest: dict):
@@ -132,11 +133,7 @@ def print_incoming_changes(digest: dict):
         print(f"✅ Νέες ΠΡΑΓΜΑΤΙΚΕΣ ({len(real_new)})")
         print("-" * 100)
         for idx, rec in enumerate(real_new, 1):
-            case_id = rec.get('case_id', '')[:15]
-            date = rec.get('submitted_at', '')[:10]
-            subject = rec.get('subject', '')[:40]
-            party = rec.get('party', '')[:30]
-            print(f"  {idx}. [{case_id:15s}] {date} │ {subject:40s} │ {party}")
+            print(f"  {idx}. {format_incoming_record_text(rec)}")
         print()
 
     # Νέες Δοκιμαστικές
@@ -145,11 +142,7 @@ def print_incoming_changes(digest: dict):
         print(f"🧪 Νέες ΔΟΚΙΜΑΣΤΙΚΕΣ ({len(test_new)})")
         print("-" * 100)
         for idx, rec in enumerate(test_new, 1):
-            case_id = rec.get('case_id', '')[:15]
-            date = rec.get('submitted_at', '')[:10]
-            subject = rec.get('subject', '')[:40]
-            party = rec.get('party', '')[:30]
-            print(f"  {idx}. [{case_id:15s}] {date} │ {subject:40s} │ {party}")
+            print(f"  {idx}. {format_incoming_record_text(rec)}")
         print()
 
     # Αφαιρεθείσες

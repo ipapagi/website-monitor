@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
+from formatters import format_incoming_record_html, format_incoming_record_pdf
 
 load_dotenv()
 
@@ -390,22 +391,7 @@ class EmailNotifier:
                 return ""
             rows = ""
             for rec in records:
-                case_id = esc(rec.get('case_id', ''))
-                protocol = esc(rec.get('protocol_number', ''))
-                submitted = esc(rec.get('submitted_at', '')[:10])
-                procedure = esc(rec.get('procedure', ''))
-                directory = esc(rec.get('directory', ''))
-                party = esc(rec.get('party', ''))
-                doc_category = esc(rec.get('document_category', ''))
-                
-                rows += f"""<div style='background: #fafafa; border-left: 4px solid #1976d2; margin: 8px 0; padding: 8px;'>
-                    <div style='margin: 3px 0; font-size: 12px;'>
-                        <strong>{icon} Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</strong>
-                    </div>
-                    <div style='margin: 3px 0; font-size: 11px;'><strong>📋 Διαδικασία:</strong> {procedure}</div>
-                    <div style='margin: 3px 0; font-size: 11px;'><strong>🏢 Δ/νση:</strong> {directory}</div>
-                    <div style='margin: 3px 0; font-size: 11px;'><strong>👤 Συναλλασσόμενος:</strong> {party}</div>
-                </div>"""
+                rows += format_incoming_record_html(rec, icon, esc)
             return rows
 
         incoming = digest.get('incoming', {})
@@ -652,21 +638,8 @@ class EmailNotifier:
                     story.append(Paragraph("─" * 120, styles['Normal']))
                     
                     for idx, rec in enumerate(real_new, 1):
-                        case_id = rec.get('case_id', '')
-                        protocol = rec.get('protocol_number', '')
-                        submitted = rec.get('submitted_at', '')[:10]
-                        procedure = rec.get('procedure', '')
-                        directory = rec.get('directory', '')
-                        party = rec.get('party', '')
-                        doc_category = rec.get('document_category', '')
-                        
-                        story.append(Paragraph(
-                            f"<b>✅ Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
-                            styles['Normal']
-                        ))
-                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
-                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
-                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        for line in format_incoming_record_pdf(rec, '✅'):
+                            story.append(Paragraph(line, styles['Normal']))
                         story.append(Spacer(1, 0.08*inch))
                     
                     story.append(Spacer(1, 0.1*inch))
@@ -678,21 +651,8 @@ class EmailNotifier:
                     story.append(Paragraph("─" * 120, styles['Normal']))
                     
                     for idx, rec in enumerate(test_new, 1):
-                        case_id = rec.get('case_id', '')
-                        protocol = rec.get('protocol_number', '')
-                        submitted = rec.get('submitted_at', '')[:10]
-                        procedure = rec.get('procedure', '')
-                        directory = rec.get('directory', '')
-                        party = rec.get('party', '')
-                        doc_category = rec.get('document_category', '')
-                        
-                        story.append(Paragraph(
-                            f"<b>🧪 Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
-                            styles['Normal']
-                        ))
-                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
-                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
-                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        for line in format_incoming_record_pdf(rec, '🧪'):
+                            story.append(Paragraph(line, styles['Normal']))
                         story.append(Spacer(1, 0.08*inch))
                     
                     story.append(Spacer(1, 0.1*inch))
@@ -704,21 +664,8 @@ class EmailNotifier:
                     story.append(Paragraph("─" * 120, styles['Normal']))
                     
                     for idx, rec in enumerate(removed, 1):
-                        case_id = rec.get('case_id', '')
-                        protocol = rec.get('protocol_number', '')
-                        submitted = rec.get('submitted_at', '')[:10]
-                        procedure = rec.get('procedure', '')
-                        directory = rec.get('directory', '')
-                        party = rec.get('party', '')
-                        doc_category = rec.get('document_category', '')
-                        
-                        story.append(Paragraph(
-                            f"<b>🗑️ Υπόθεση {case_id}({protocol}) - {doc_category} │ {submitted}</b>",
-                            styles['Normal']
-                        ))
-                        story.append(Paragraph(f"<b>📋 Διαδικασία:</b> {procedure}", styles['Normal']))
-                        story.append(Paragraph(f"<b>🏢 Δ/νση:</b> {directory}", styles['Normal']))
-                        story.append(Paragraph(f"<b>👤 Συναλλασσόμενος:</b> {party}", styles['Normal']))
+                        for line in format_incoming_record_pdf(rec, '🗑️'):
+                            story.append(Paragraph(line, styles['Normal']))
                         story.append(Spacer(1, 0.08*inch))
 
                 # Σύνοψη νέων
