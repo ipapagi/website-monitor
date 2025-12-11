@@ -24,6 +24,7 @@ from incoming import (
     compare_incoming_records,
     merge_with_previous_snapshot,
 )
+from api import enrich_record_details
 from test_users import classify_records, get_record_stats
 from email_notifier import EmailNotifier
 from report_display import print_full_digest
@@ -98,6 +99,11 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
     else:
         # Αν δεν υπάρχει προηγούμενο, μήνυμα baseline: θα θεωρηθεί baseline χωρίς αλλαγές
         prev_snap = {"records": []}
+
+    # Εμπλουτισμός εγγραφών που λείπουν πληροφορίες (ίδια λογική με το --check-incoming-portal)
+    to_enrich = [r for r in records if not r.get('procedure') or not r.get('directory')]
+    if to_enrich:
+        enrich_record_details(monitor, to_enrich)
 
     changes = compare_incoming_records(records, prev_snap)
     real_new, test_new = classify_records(changes.get("new", []))
