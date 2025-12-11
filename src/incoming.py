@@ -101,10 +101,17 @@ def simplify_incoming_records(records):
         # Αφαίρεση ΑΦΜ από το θέμα (όπως και από το party)
         subject = sanitize_party_name(subject_raw)
         
+        # Διαδικασία
+        procedure = rec.get('procedure', '') or rec.get('W007_P_FLD31', '') or ''
+        # Διεύθυνση
+        directory = rec.get('directory', '') or rec.get('W007_P_FLD32', '') or ''
+        # Αριθμός πρωτοκόλλου
+        protocol_number = rec.get('protocol_number', '') or rec.get('W007_P_FLD22', '') or ''
+        
         simplified.append({
             'case_id': case_id, 'submitted_at': submitted_at,
             'party': sanitize_party_name(party_raw), 'doc_id': doc_id,
-            'protocol_number': '', 'procedure': '', 'directory': '',
+            'protocol_number': protocol_number, 'procedure': procedure, 'directory': directory,
             'document_category': doc_category, 'subject': subject
         })
     return simplified
