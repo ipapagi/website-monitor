@@ -1,7 +1,8 @@
-# Environment variables - ΣΗΜΑΝΤΙΚΟ!
+# Environment variables - ΣΗΜΑΝΤΙΚΟ! (μόνο το .env, όχι το .env.example)
 .env
 *.env.local
-.env.*
+.env.[!e]*
+.env.*.local
 
 # Python
 __pycache__/
@@ -51,6 +52,7 @@ login_response.html
 data/active_procedures_baseline.json
 data/incoming_requests/
 data/procedures_cache.json
+data/daily_report*.pdf
 
 # Logs
 logs/*.log

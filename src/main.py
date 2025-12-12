@@ -36,6 +36,8 @@ def parse_arguments():
                        help='Αναλύει τις αιτήσεις ενός snapshot για δοκιμαστικές/πραγματικές')
     parser.add_argument('--analyze-current', action='store_true',
                        help='Αναλύει τις τρέχουσες αιτήσεις για δοκιμαστικές/πραγματικές')
+    parser.add_argument('--send-daily-email', action='store_true',
+                       help='Στέλνει ημερήσιο email report (διαδικασίες + εισερχόμενα)')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -142,6 +144,17 @@ def main():
     if args.analyze_test:
         handle_analyze_test(args.analyze_test)
         sys.exit(0)
+
+    if args.send_daily_email:
+        from daily_report import send_daily_email
+
+        try:
+            send_daily_email()
+            print("✅ Ημερήσιο email εστάλη")
+            sys.exit(0)
+        except Exception as exc:
+            print(f"❌ Αποτυχία αποστολής ημερήσιου email: {exc}")
+            sys.exit(1)
     
     config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))
     monitor = PKMMonitor(

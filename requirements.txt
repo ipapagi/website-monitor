@@ -6,3 +6,6 @@ urllib3>=1.26.0
 
 # Optional - for notifications
 plyer>=2.1.0
+
+# Optional - for PDF generation
+reportlab>=4.0.0

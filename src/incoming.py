@@ -101,10 +101,17 @@ def simplify_incoming_records(records):
         # Αφαίρεση ΑΦΜ από το θέμα (όπως και από το party)
         subject = sanitize_party_name(subject_raw)
         
+        # Διαδικασία
+        procedure = rec.get('procedure', '') or rec.get('W007_P_FLD31', '') or ''
+        # Διεύθυνση
+        directory = rec.get('directory', '') or rec.get('W007_P_FLD32', '') or ''
+        # Αριθμός πρωτοκόλλου
+        protocol_number = rec.get('protocol_number', '') or rec.get('W007_P_FLD22', '') or ''
+        
         simplified.append({
             'case_id': case_id, 'submitted_at': submitted_at,
             'party': sanitize_party_name(party_raw), 'doc_id': doc_id,
-            'protocol_number': '', 'procedure': '', 'directory': '',
+            'protocol_number': protocol_number, 'procedure': procedure, 'directory': directory,
             'document_category': doc_category, 'subject': subject
         })
     return simplified
@@ -129,9 +136,21 @@ def merge_with_previous_snapshot(current_records, previous_snapshot):
     # Dict με τρέχουσες εγγραφές
     current_dict = {r['case_id']: r for r in current_records if r.get('case_id')}
     
+    # Dict με προηγούμενες εγγραφές
+    prev_records = previous_snapshot.get('records', [])
+    prev_dict = {r.get('case_id'): r for r in prev_records if r.get('case_id')}
+    
+    # Ενημέρωση: αν η τρέχουσα εγγραφή υπάρχει και στο προηγούμενο, κρατάμε τα πλήρη δεδομένα
+    for case_id, curr_rec in current_dict.items():
+        if case_id in prev_dict:
+            prev_rec = prev_dict[case_id]
+            # Συμπληρώνουμε κενά πεδία από το προηγούμενο
+            for field in ['protocol_number', 'procedure', 'directory']:
+                if not curr_rec.get(field) and prev_rec.get(field):
+                    curr_rec[field] = prev_rec.get(field)
+    
     # Πρόσθεσε εγγραφές από το προηγούμενο snapshot που δεν υπάρχουν στις τρέχουσες
     # (παλαιότερες που έφυγαν από το API limit αλλά δεν έχουν διαγραφεί)
-    prev_records = previous_snapshot.get('records', [])
     for prev_rec in prev_records:
         case_id = prev_rec.get('case_id')
         if case_id and case_id not in current_dict:
