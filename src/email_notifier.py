@@ -369,6 +369,16 @@ class EmailNotifier:
             print("Email notifications are disabled")
             return False
 
+        # Καθορισμός τίτλου
+        if digest.get('is_historical_comparison'):
+            comp_date = digest.get('comparison_date', '')
+            ref_date = digest.get('reference_date', '')
+            title = f"ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ - Σύγκριση {comp_date} με {ref_date}"
+            subject = f"Αναφορά Σύγκρισης {comp_date} - PKM Monitor"
+        else:
+            title = "ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ"
+            subject = f"Ημερήσια Αναφορά {digest.get('generated_at', '').split()[0]} - PKM Monitor"
+
         def esc(val):
             import html
 
@@ -440,7 +450,7 @@ class EmailNotifier:
             </head>
             <body>
                 <div class="header">
-                    <h2 style="margin: 0;">ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ</h2>
+                    <h2 style="margin: 0;">{title}</h2>
                     <div style="font-size: 12px;">{esc(digest.get('generated_at', ''))} – {esc(digest.get('base_url', ''))}</div>
                 </div>
 
@@ -520,12 +530,12 @@ class EmailNotifier:
                 sent += 1
         
         # Δημιουργία PDF
-        pdf_path = self.generate_daily_report_pdf(digest)
+        pdf_path = self.generate_daily_report_pdf(digest, title=title)
         
         print(f"Daily digest sent to {sent} admin(s)")
         return sent > 0
 
-    def generate_daily_report_pdf(self, digest: Dict, pdf_path: str = None) -> str:
+    def generate_daily_report_pdf(self, digest: Dict, pdf_path: str = None, title: str = None) -> str:
         """Δημιουργεί PDF αναφοράς από το digest."""
         try:
             from reportlab.lib.pagesizes import letter, A4
@@ -563,11 +573,20 @@ class EmailNotifier:
             styles = getSampleStyleSheet()
 
             # Header
-            title = Paragraph(
-                "ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ",
+            # Καθορισμός τίτλου αν δεν δόθηκε
+            if not title:
+                if digest.get('is_historical_comparison'):
+                    comp_date = digest.get('comparison_date', '')
+                    ref_date = digest.get('reference_date', '')
+                    title = f"ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ - Σύγκριση {comp_date} με {ref_date}"
+                else:
+                    title = "ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ"
+            
+            pdf_title = Paragraph(
+                title,
                 styles['Title']
             )
-            story.append(title)
+            story.append(pdf_title)
 
             timestamp = Paragraph(
                 f"<b>Δημιουργία:</b> {digest.get('generated_at', '')}<br/>"

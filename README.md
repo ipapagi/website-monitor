@@ -1,6 +1,6 @@
 # PKM Website Monitor
 
-Εφαρμογή Python για παρακολούθηση ενεργών διαδικασιών στην πλατφόρμα PKM (Περιφέρεια Κεντρικής Μακεδονίας).
+Εφαρμογή Python για παρακολούθηση ενεργών διαδικασιών και εισερχόμενων αιτήσεων στην πλατφόρμα PKM (Περιφέρεια Κεντρικής Μακεδονίας).
 
 ## Χαρακτηριστικά
 
@@ -11,6 +11,7 @@
 - ✅ Παρακολούθηση εισερχόμενων αιτήσεων με ημερήσια snapshots
 - ✅ Εμπλουτισμός εγγραφών με στοιχεία διαδικασίας και διεύθυνσης
 - ✅ Διαχωρισμός πραγματικών/δοκιμαστικών αιτήσεων
+- ✅ Ημερήσιες αναφορές με email/PDF και τίτλους ιστορικής σύγκρισης
 - ✅ Desktop notifications και ηχητικές ειδοποιήσεις
 - ✅ Continuous monitoring
 
@@ -28,7 +29,9 @@ website-monitor/
 │   ├── procedures.py        # Procedures cache
 │   ├── incoming.py          # Incoming requests management
 │   ├── api.py               # API calls & record enrichment
-│   ├── display.py           # Output formatting
+│   ├── display.py           # Output formatting (CLI incoming compare)
+│   ├── report_display.py    # Output formatting (daily digest)
+│   ├── formatters.py        # Κοινές συναρτήσεις μορφοποίησης (text/HTML/PDF)
 │   ├── test_users.py        # Διαχείριση δοκιμαστικών χρηστών
 │   ├── backfill_snapshots.py # Ενημέρωση παλαιότερων snapshots
 │   └── utils.py             # Utilities
@@ -135,7 +138,13 @@ python src/main.py --list-all           # Εμφάνιση όλων των δι�
 python src/main.py --check-incoming-portal                # Έλεγχος νέων αιτήσεων
 python src/main.py --check-incoming-portal --enrich-all   # + εμπλουτισμός όλων με ελλιπή στοιχεία
 python src/main.py --compare-date 2025-12-05              # Σύγκριση snapshot ημερομηνίας
+python src/main.py --send-daily-email                     # Ημερήσια αναφορά (email + PDF)
 ```
+
+#### Ιστορική σύγκριση ημερήσιας αναφοράς
+- Ορίζεις στο `.env` το `INCOMING_FORCE_BASELINE_DATE=YYYY-MM-DD`
+- Η ημερήσια αναφορά φορτώνει το snapshot αυτής της ημερομηνίας και το συγκρίνει με το αμέσως προηγούμενο διαθέσιμο snapshot
+- Οι τίτλοι (terminal/email/PDF) δείχνουν ξεκάθαρα: «ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ - Σύγκριση <ημερομηνία> με <προηγούμενη>»
 
 ### Ανάλυση Δοκιμαστικών/Πραγματικών Αιτήσεων
 ```bash
@@ -177,6 +186,7 @@ python src/main.py                      # Ξεκινά continuous monitoring
 | `--compare-date YYYY-MM-DD` | Συγκρίνει snapshot συγκεκριμένης ημερομηνίας |
 | `--analyze-test YYYY-MM-DD` | Αναλύει δοκιμαστικές/πραγματικές αιτήσεις |
 | `--analyze-current` | Ανάλυση τρεχουσών αιτήσεων |
+| `--send-daily-email` | Στέλνει ημερήσια αναφορά (email + PDF) |
 | `--no-monitor` | Δεν ξεκινά continuous monitoring |
 
 ## VS Code Launch Configurations

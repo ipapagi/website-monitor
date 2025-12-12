@@ -65,23 +65,38 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
             "stats": {"total": 0, "real": 0, "test": 0, "test_breakdown": {}},
         }
 
-    records = simplify_incoming_records(data.get("data", []))
     today = datetime.now().strftime("%Y-%m-%d")
     
     # Έλεγχος αν υπάρχει forced baseline ημερομηνία στο .env
     force_baseline_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
     if force_baseline_date:
-        print(f"ℹ️  Χρήση αναγκαστικής ημερομηνίας baseline: {force_baseline_date}")
+        # Χρησιμοποίησε το snapshot της forced ημερομηνίας αντί για σημερινό
+        print(f"ℹ️  Χρήση αναγκαστικής ημερομηνίας snapshot: {force_baseline_date}")
         forced_snap = load_incoming_snapshot(force_baseline_date)
-        if forced_snap:
-            prev_date, prev_snap = force_baseline_date, forced_snap
-            has_prev = True
-        else:
+        if not forced_snap:
             print(f"⚠️  Δεν βρέθηκε snapshot για {force_baseline_date}")
-            prev_date, prev_snap = None, None
-            has_prev = False
+            return {
+                "date": today,
+                "reference_date": None,
+                "records": [],
+                "changes": {"new": [], "removed": [], "modified": []},
+                "real_new": [],
+                "test_new": [],
+                "stats": {"total": 0, "real": 0, "test": 0, "test_breakdown": {}},
+            }
+        
+        # Χρησιμοποίησε τα records από το forced snapshot
+        records = forced_snap.get('records', [])
+        today = force_baseline_date  # Άλλαξε το "today" στην forced ημερομηνία
+        
+        # Βρες το προηγούμενο snapshot της forced ημερομηνίας
+        prev_date, prev_snap = load_previous_incoming_snapshot(force_baseline_date)
+        has_prev = prev_snap is not None
     else:
-        # Κανονική ροή: ψάχνουμε προηγούμενο snapshot
+        # Κανονική ροή: φέρε δεδομένα από API
+        records = simplify_incoming_records(data.get("data", []))
+        
+        # Ψάχνουμε προηγούμενο snapshot
         prev_date, prev_snap = load_previous_incoming_snapshot(today)
         has_prev = prev_snap is not None
 
@@ -151,9 +166,16 @@ def build_daily_digest(config_path: str | None = None) -> dict:
 
     incoming_data = _prepare_incoming(monitor, config)
 
+    # Έλεγχος αν είναι ιστορική σύγκριση
+    force_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
+    is_historical = force_date is not None
+    
     digest = {
         "generated_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
         "base_url": monitor.base_url,
+        "is_historical_comparison": is_historical,
+        "comparison_date": incoming_data.get('date') if is_historical else None,
+        "reference_date": incoming_data.get('reference_date') if is_historical else None,
         "active": {
             "total": len(active_procs),
             "baseline_timestamp": active_bl.get("timestamp") if active_bl else None,

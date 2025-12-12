@@ -38,7 +38,7 @@ class PKMSession:
             return False
         
         try:
-            print("\n" + "─"*80)
+            print("\n" + "-"*80)
             print_status("🔐 ΕΝΑΡΞΗ ΔΙΑΔΙΚΑΣΙΑΣ ΣΥΝΔΕΣΗΣ", 'info')
             
             # GET login page για cookies

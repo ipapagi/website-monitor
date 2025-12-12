@@ -6,7 +6,16 @@ from formatters import format_incoming_record_text
 def print_digest_header(digest: dict):
     """Εμφανίζει τα headers της αναφοράς"""
     print("\n" + "=" * 100)
-    print("ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ".center(100))
+    
+    # Τίτλος ανάλογα με το αν είναι ιστορική σύγκριση
+    if digest.get('is_historical_comparison'):
+        comp_date = digest.get('comparison_date', '')
+        ref_date = digest.get('reference_date', '')
+        title = f"ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ - Σύγκριση {comp_date} με {ref_date}"
+    else:
+        title = "ΗΜΕΡΗΣΙΑ ΑΝΑΦΟΡΑ ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ"
+    
+    print(title.center(100))
     print("=" * 100)
     print(f"📅 Δημιουργία: {digest.get('generated_at', '')}")
     print(f"🌐 URL: {digest.get('base_url', '')}")
@@ -135,7 +144,7 @@ def print_incoming_changes(digest: dict):
     print("=" * 100)
     print("📥 ΕΙΣΕΡΧΟΜΕΝΕΣ ΑΙΤΗΣΕΙΣ".center(100))
     print("=" * 100)
-    print(f"Σημερινή ημερομηνία: {incoming_data.get('date', '')}")
+    print(f"Ημερομηνία snapshot: {incoming_data.get('date', '')}")
     print(f"Σύγκριση με: {incoming_data.get('reference_date', 'πρώτη καταγραφή')}")
     print(f"Σύνολο: {incoming_data.get('stats', {}).get('total', 0)} "
           f"(✅ Πραγματικές: {incoming_data.get('stats', {}).get('real', 0)}, "
