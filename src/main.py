@@ -4,6 +4,12 @@ import os
 import argparse
 from datetime import datetime
 
+# Ορίσει UTF-8 κωδικοποίηση για Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from monitor import PKMMonitor
@@ -19,6 +25,15 @@ from incoming import (simplify_incoming_records, compare_incoming_records,
 from api import enrich_record_details
 from display import (print_comparison_results, print_all_procedures_comparison,
                      print_incoming_changes)
+
+# FastAPI imports (προσθήκη)
+try:
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+    import uvicorn
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='PKM Website Monitor')
@@ -134,6 +149,38 @@ def handle_analyze_test(date_str):
     print_test_analysis(records, date_str)
     return True
 
+
+def setup_fastapi_server():
+    """Ρύθμιση και εκκίνηση FastAPI server"""
+    if not FASTAPI_AVAILABLE:
+        print("⚠️  FastAPI δεν είναι εγκατεστημένο. Αγνοούμε το API server.")
+        return
+    
+    app = FastAPI(title="PKM Monitor API", version="1.0.0")
+    
+    @app.get("/sede/daily")
+    async def get_sede_daily():
+        """Επιστρέφει την ημερήσια αναφορά ΣΗΔΕ σε JSON μορφή"""
+        try:
+            from sede_report import get_daily_sede_report
+            report = get_daily_sede_report()
+            return JSONResponse(content=report, status_code=200)
+        except Exception as e:
+            return JSONResponse(
+                content={"error": str(e), "message": "Αποτυχία ανάκτησης αναφοράς ΣΗΔΕ"},
+                status_code=500
+            )
+    
+    print("\n" + "="*80)
+    print("🚀 FastAPI Server ξεκινά...".center(80))
+    print("="*80)
+    print("📡 Διαθέσιμο endpoint: GET http://localhost:8000/sede/daily")
+    print("📖 API Documentation: http://localhost:8000/docs")
+    print("="*80 + "\n")
+    
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+
 def main():
     args = parse_arguments()
     print("\n" + "="*80)
@@ -217,4 +264,14 @@ def main():
         sys.exit(0)
 
 if __name__ == '__main__':
-    main()
+    args = parse_arguments()
+    
+    # Αν δεν υπάρχουν arguments, ξεκίνησε το FastAPI server
+    if len(sys.argv) == 1 and FASTAPI_AVAILABLE:
+        print("\n" + "="*80)
+        print("⚠️  Κανένα argument δεν δόθηκε. Εκκίνηση FastAPI server...".center(80))
+        print("="*80)
+        setup_fastapi_server()
+    else:
+        # Αλλιώς τρέξε το κανονικό πρόγραμμα
+        main()
