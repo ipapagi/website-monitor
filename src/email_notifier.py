@@ -434,8 +434,8 @@ class EmailNotifier:
                     body {{ font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; line-height: 1.4; font-size: 13px; }}
                     .header {{ background: linear-gradient(90deg, #0d47a1, #1976d2); color: #fff; padding: 20px; text-align: center; }}
                     .section {{ background: #fff; margin: 10px 0; padding: 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }}
-                    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }}
-                    .card {{ background: #f5f7fb; border-radius: 6px; padding: 10px; text-align: center; }}
+                    .cards {{ display: flex; flex-wrap: nowrap; gap: 8px; justify-content: flex-start; overflow-x: auto; padding-bottom: 6px; }}
+                    .card {{ background: #f5f7fb; border-radius: 6px; padding: 10px; text-align: center; flex: 0 0 140px; }}
                     .card h4 {{ margin: 0; color: #555; font-size: 12px; }}
                     .card .num {{ font-size: 24px; font-weight: 700; color: #0d47a1; }}
                     table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
