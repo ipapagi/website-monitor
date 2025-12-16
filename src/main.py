@@ -165,11 +165,41 @@ def create_fastapi_app():
     
     @app.get("/sede/daily", tags=["Πλήρης Αναφορά"])
     async def get_sede_daily():
-        """Επιστρέφει την πλήρη ημερήσια αναφορά ΣΗΔΕ σε JSON μορφή"""
+        """Επιστρέφει ημερήσια αναφορά φιλική για Teams/Power Automate"""
         try:
             from sede_report import get_daily_sede_report
+
             report = get_daily_sede_report()
-            return JSONResponse(content=report, status_code=200)
+            incoming = report.get('incoming', {})
+            incoming_changes = incoming.get('changes', {})
+            active_changes = (report.get('active') or {}).get('changes') or {}
+            all_changes = (report.get('all') or {}).get('changes') or {}
+
+            # Flat JSON για εύκολη κατανάλωση από Teams / Power Automate
+            payload = {
+                "generated_at": report.get('generated_at', ''),
+                "date": incoming.get('date') or report.get('generated_at', '')[:10],
+                "base_url": report.get('base_url', ''),
+                "is_historical_comparison": report.get('is_historical_comparison', False),
+                "comparison_date": report.get('comparison_date'),
+                "reference_date": report.get('reference_date') or incoming.get('reference_date'),
+                "active_total": report.get('active', {}).get('total', 0),
+                "all_total": report.get('all', {}).get('total', 0),
+                "incoming_total": incoming.get('stats', {}).get('total', 0),
+                "incoming_real": incoming.get('stats', {}).get('real', 0),
+                "incoming_test": incoming.get('stats', {}).get('test', 0),
+                "incoming_removed": len(incoming_changes.get('removed', [])),
+                "active_new": len(active_changes.get('new', [])),
+                "active_modified": len(active_changes.get('modified', [])),
+                "all_new": len(all_changes.get('new', [])),
+                "all_modified": len(all_changes.get('modified', [])),
+                "notes": [
+                    "Use in Teams/Power Automate cards",
+                    "Flat schema: no deep nesting for easy dynamic content mapping"
+                ]
+            }
+
+            return JSONResponse(content=payload, status_code=200)
         except Exception as e:
             return JSONResponse(
                 content={"error": str(e), "message": "Αποτυχία ανάκτησης αναφοράς ΣΗΔΕ"},
