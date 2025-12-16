@@ -1,10 +1,21 @@
 """Daily and summary endpoints."""
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from datetime import datetime, timedelta
+from typing import Optional
 
+from fastapi import APIRouter, Body
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+from incoming import load_incoming_snapshot
 from services.report_service import load_digest, count_changes, incoming_stats
+from test_users import get_record_stats
 
 router = APIRouter()
+
+
+class PeriodSummaryRequest(BaseModel):
+    days: int = Field(default=7, ge=1, le=90, description="Αριθμός ημερών για σύνοψη (1-90)")
+    include_details: bool = Field(default=False, description="Συμπερίληψη λεπτομερειών ανά ημέρα")
 
 
 @router.get("/sede/daily", tags=["Πλήρης Αναφορά"])
@@ -120,5 +131,77 @@ async def get_stats():
     except Exception as e:  # pragma: no cover
         return JSONResponse(
             content={"error": str(e), "message": "Αποτυχία ανάκτησης στατιστικών"},
+            status_code=500,
+        )
+
+
+@router.post("/sede/summary/period", tags=["Στατιστικά"])
+async def post_period_summary(request: PeriodSummaryRequest = Body(...)):
+    """Επιστρέφει σύνοψη για συγκεκριμένο αριθμό ημερών (POST request)."""
+    try:
+        days = request.days
+        include_details = request.include_details
+        
+        today = datetime.now()
+        daily_data = []
+        total_incoming = 0
+        total_real = 0
+        total_test = 0
+        
+        for i in range(days):
+            date_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            snapshot = load_incoming_snapshot(date_str)
+            
+            if snapshot:
+                records = snapshot.get("records", [])
+                stats = get_record_stats(records)
+                day_total = len(records)
+                day_real = stats.get("real", 0)
+                day_test = stats.get("test", 0)
+                
+                total_incoming += day_total
+                total_real += day_real
+                total_test += day_test
+                
+                if include_details:
+                    daily_data.append({
+                        "date": date_str,
+                        "total": day_total,
+                        "real": day_real,
+                        "test": day_test,
+                    })
+        
+        # Υπολογισμός μέσων όρων
+        avg_total = round(total_incoming / days, 1) if days > 0 else 0
+        avg_real = round(total_real / days, 1) if days > 0 else 0
+        avg_test = round(total_test / days, 1) if days > 0 else 0
+        
+        summary = {
+            "period": {
+                "days": days,
+                "from": (today - timedelta(days=days - 1)).strftime("%Y-%m-%d"),
+                "to": today.strftime("%Y-%m-%d"),
+            },
+            "totals": {
+                "incoming": total_incoming,
+                "real": total_real,
+                "test": total_test,
+                "real_percentage": round(total_real / total_incoming * 100, 1) if total_incoming > 0 else 0,
+                "test_percentage": round(total_test / total_incoming * 100, 1) if total_incoming > 0 else 0,
+            },
+            "averages": {
+                "daily_incoming": avg_total,
+                "daily_real": avg_real,
+                "daily_test": avg_test,
+            },
+        }
+        
+        if include_details:
+            summary["daily_breakdown"] = daily_data
+        
+        return JSONResponse(content=summary, status_code=200)
+    except Exception as e:  # pragma: no cover
+        return JSONResponse(
+            content={"error": str(e), "message": "Αποτυχία ανάκτησης σύνοψης περιόδου"},
             status_code=500,
         )
