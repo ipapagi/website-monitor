@@ -6,24 +6,31 @@
 
 ## Εκκίνηση
 
-### Χωρίς arguments (FastAPI Server)
+### FastAPI Server (μόνο API)
 ```bash
-python -m src.main
+# Τρόπος 1: Με uvicorn (Προτεινόμενο)
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+# Τρόπος 2: Με reload για development
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Τρόπος 3: Custom port
+uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
 
-Αυτό θα ξεκινήσει το FastAPI server στη θύρα `8000`:
+Αυτό θα ξεκινήσει **μόνο** το FastAPI server:
 - 📡 Endpoint: `http://localhost:8000/sede/daily`
 - 📖 API Documentation (Swagger UI): `http://localhost:8000/docs`
 - 🎯 API Documentation (ReDoc): `http://localhost:8000/redoc`
 
-### Με arguments (Κανονικό πρόγραμμα)
+### Κανονικό Πρόγραμμα (email + terminal)
 ```bash
 python -m src.main --send-daily-email
 python -m src.main --check-incoming-portal
 python -m src.main --help
 ```
 
-Όταν δίνονται arguments, το FastAPI server δεν ξεκινά και το πρόγραμμα τρέχει κανονικά.
+Αυτό θα τρέξει το κανονικό πρόγραμμα με email και terminal output.
 
 ## API Endpoints
 

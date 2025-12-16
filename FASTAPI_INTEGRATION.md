@@ -12,8 +12,8 @@
 ### 2. **FastAPI Integration στο `main.py`**
    - ✅ Νέο endpoint: `GET /sede/daily` 
    - ✅ Επιστρέφει JSON με όλα τα δεδομένα της αναφοράς
-   - ✅ Αυτόματη εκκίνηση όταν δεν υπάρχουν arguments
-   - ✅ Δεν τρέχει όταν υπάρχουν arguments (κανονικό πρόγραμμα)
+   - ✅ Διαχωρισμένη εκτέλεση: uvicorn για API, python για κανονικό πρόγραμμα
+   - ✅ Χρήση `if __name__ == "__main__"` για κανονική εκτέλεση
 
 ### 3. **Εγκατάσταση Dependencies**
    - ✅ FastAPI >= 0.104.0
@@ -28,13 +28,17 @@
 
 ## 📋 Χρήση
 
-### Εκκίνηση FastAPI Server
+### Εκκίνηση FastAPI Server (μόνο API)
 ```bash
-python -m src.main
+# Προτεινόμενος τρόπος με uvicorn
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+# Με auto-reload για development
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 Το server ξεκινά στο `http://localhost:8000`
 
-### Κανονική χρήση (χωρίς FastAPI)
+### Κανονική χρήση (email + terminal)
 ```bash
 python -m src.main --send-daily-email
 python -m src.main --check-incoming-portal
