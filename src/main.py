@@ -4,6 +4,12 @@ import os
 import argparse
 from datetime import datetime
 
+# Ορίσει UTF-8 κωδικοποίηση για Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from monitor import PKMMonitor
@@ -19,6 +25,14 @@ from incoming import (simplify_incoming_records, compare_incoming_records,
 from api import enrich_record_details
 from display import (print_comparison_results, print_all_procedures_comparison,
                      print_incoming_changes)
+
+# FastAPI imports (προσθήκη)
+try:
+    from fastapi import FastAPI
+    import uvicorn
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='PKM Website Monitor')
@@ -38,6 +52,8 @@ def parse_arguments():
                        help='Αναλύει τις τρέχουσες αιτήσεις για δοκιμαστικές/πραγματικές')
     parser.add_argument('--send-daily-email', action='store_true',
                        help='Στέλνει ημερήσιο email report (διαδικασίες + εισερχόμενα)')
+    parser.add_argument('--full-text', action='store_true',
+                        help='Απενεργοποιεί το truncation για την εκτύπωση στο terminal (μόνο για text view)')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -134,8 +150,29 @@ def handle_analyze_test(date_str):
     print_test_analysis(records, date_str)
     return True
 
+
+def create_fastapi_app():
+    """Δημιουργεί και επιστρέφει το FastAPI application (για χρήση με uvicorn)."""
+    if not FASTAPI_AVAILABLE:
+        raise ImportError("FastAPI δεν είναι εγκατεστημένο")
+
+    # Καθυστερημένη import για να αποφευχθεί σύγκρουση με το υπάρχον api.py module
+    from webapi import create_app
+
+    return create_app()
+
+
+# Δημιουργία app instance για χρήση με uvicorn
+# Εκτέλεση: uvicorn src.main:app --host 0.0.0.0 --port 8000
+if FASTAPI_AVAILABLE:
+    app = create_fastapi_app()
+
+
 def main():
     args = parse_arguments()
+    # Runtime override for terminal formatting widths
+    if args.full_text:
+        os.environ['PKM_FULL_TEXT'] = '1'
     print("\n" + "="*80)
     print(f"🚀 PKM Website Monitor - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(80))
     print("="*80)
@@ -217,4 +254,6 @@ def main():
         sys.exit(0)
 
 if __name__ == '__main__':
+    # Το πρόγραμμα τρέχει κανονικά με email + terminal
+    # Για FastAPI, χρησιμοποίησε: uvicorn src.main:app --host 0.0.0.0 --port 8000
     main()

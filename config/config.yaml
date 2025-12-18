@@ -45,3 +45,11 @@ incoming_api_params:
   page: 1
   start: 0
   limit: 200  # Αύξησε από 100 σε 200 ή περισσότερο
+
+# Ρυθμίσεις εμφάνισης για terminal output
+# Αν βάλεις 0 ή null, δεν εφαρμόζεται περιορισμός (no limit)
+text_max_widths:
+  case_id: 15
+  procedure: 60
+  directory: 50
+  party: 40

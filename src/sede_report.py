@@ -1,0 +1,221 @@
+"""Ανάκτηση ημερήσιας αναφοράς ΣΗΔΕ χωρίς email ή terminal output"""
+import os
+import sys
+from datetime import datetime
+from dotenv import load_dotenv
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from monitor import PKMMonitor
+from utils import load_config
+from config import get_project_root, INCOMING_DEFAULT_PARAMS
+from baseline import (
+    load_baseline,
+    load_all_procedures_baseline,
+    compare_with_baseline,
+    compare_all_procedures_with_baseline,
+)
+from incoming import (
+    simplify_incoming_records,
+    load_previous_incoming_snapshot,
+    load_incoming_snapshot,
+    save_incoming_snapshot,
+    fetch_incoming_records,
+    compare_incoming_records,
+    merge_with_previous_snapshot,
+)
+from api import enrich_record_details
+from test_users import classify_records, get_record_stats
+
+load_dotenv()
+
+
+def _ensure_logged_in_silent(monitor: PKMMonitor):
+    """Κάνει login και φορτώνει αρχική σελίδα αν χρειάζεται (σιωπηλά)"""
+    if not monitor.logged_in and not monitor.login():
+        raise RuntimeError("Αποτυχία login")
+    if not monitor.main_page_loaded:
+        monitor.load_main_page()
+
+
+def _fetch_procedures_silent(monitor: PKMMonitor):
+    """Επιστρέφει all/active procedures από το API (σιωπηλά)"""
+    data = monitor.fetch_page()
+    if not data or not data.get("success"):
+        raise RuntimeError("Αποτυχία ανάκτησης δεδομένων διαδικασιών")
+    all_procs = monitor.parse_table_data(data)
+    active_procs = [p for p in all_procs if p.get("ενεργή") == "ΝΑΙ"]
+    return all_procs, active_procs
+
+
+def _prepare_incoming_silent(monitor: PKMMonitor, config: dict):
+    """Φέρνει εισερχόμενες αιτήσεις, συγκρίνει με προηγούμενο snapshot και αποθηκεύει το σημερινό (σιωπηλά)."""
+    incoming_params = config.get("incoming_api_params", INCOMING_DEFAULT_PARAMS).copy()
+    data = fetch_incoming_records(monitor, incoming_params)
+    if not data or not data.get("success"):
+        return {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "reference_date": None,
+            "records": [],
+            "changes": {"new": [], "removed": [], "modified": []},
+            "real_new": [],
+            "test_new": [],
+            "stats": {"total": 0, "real": 0, "test": 0, "test_breakdown": {}},
+        }
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Έλεγχος αν υπάρχει forced baseline ημερομηνία στο .env
+    force_baseline_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
+    if force_baseline_date:
+        # Χρησιμοποίησε το snapshot της forced ημερομηνίας αντί για σημερινό
+        forced_snap = load_incoming_snapshot(force_baseline_date)
+        if not forced_snap:
+            return {
+                "date": today,
+                "reference_date": None,
+                "records": [],
+                "changes": {"new": [], "removed": [], "modified": []},
+                "real_new": [],
+                "test_new": [],
+                "stats": {"total": 0, "real": 0, "test": 0, "test_breakdown": {}},
+            }
+        
+        # Χρησιμοποίησε τα records από το forced snapshot
+        records = forced_snap.get('records', [])
+        today = force_baseline_date  # Άλλαξε το "today" στην forced ημερομηνία
+        
+        # Βρες το προηγούμενο snapshot της forced ημερομηνίας
+        prev_date, prev_snap = load_previous_incoming_snapshot(force_baseline_date)
+        has_prev = prev_snap is not None
+    else:
+        # Κανονική ροή: φέρε δεδομένα από API
+        records = simplify_incoming_records(data.get("data", []))
+        
+        # Ψάχνουμε προηγούμενο snapshot
+        prev_date, prev_snap = load_previous_incoming_snapshot(today)
+        has_prev = prev_snap is not None
+
+        # Αν δεν υπάρχει προηγούμενο snapshot, ψάχνουμε fallback ημερομηνία από .env
+        if not has_prev:
+            fallback_date = os.getenv("INCOMING_BASELINE_DATE")
+            if fallback_date:
+                fallback_snap = load_incoming_snapshot(fallback_date)
+                if fallback_snap:
+                    prev_date, prev_snap = fallback_date, fallback_snap
+                    has_prev = True
+
+    if has_prev:
+        records = merge_with_previous_snapshot(records, prev_snap)
+    else:
+        # Αν δεν υπάρχει προηγούμενο, μήνυμα baseline: θα θεωρηθεί baseline χωρίς αλλαγές
+        prev_snap = {"records": []}
+
+    # Εμπλουτισμός εγγραφών που λείπουν πληροφορίες (ίδια λογική με το --check-incoming-portal)
+    to_enrich = [r for r in records if not r.get('procedure') or not r.get('directory')]
+    if to_enrich:
+        enrich_record_details(monitor, to_enrich)
+
+    changes = compare_incoming_records(records, prev_snap)
+    real_new, test_new = classify_records(changes.get("new", []))
+    stats = get_record_stats(records)
+
+    # Αποθήκευση snapshot για το επόμενο run
+    save_incoming_snapshot(today, records)
+
+    return {
+        "date": today,
+        "reference_date": prev_date,
+        "records": records,
+        "changes": changes,
+        "real_new": real_new,
+        "test_new": test_new,
+        "stats": stats,
+    }
+
+
+def get_daily_sede_report(config_path: str | None = None) -> dict:
+    """
+    Επιστρέφει την ημερήσια αναφορά ΣΗΔΕ με όλα τα δεδομένα.
+    
+    Χρησιμοποιεί τον υπάρχοντα κώδικα αλλά δεν στέλνει email και δεν τυπώνει στο terminal.
+    
+    Args:
+        config_path: Προαιρετική διαδρομή αρχείου config (αν None, χρησιμοποιεί default)
+    
+    Returns:
+        dict: Αναφορά με τα εξής κλειδιά:
+            - generated_at: Ημερομηνία/ώρα δημιουργίας (str)
+            - base_url: URL της βάσης (str)
+            - is_historical_comparison: Αν είναι ιστορική σύγκριση (bool)
+            - comparison_date: Ημερομηνία σύγκρισης αν είναι ιστορική (str or None)
+            - reference_date: Ημερομηνία αναφοράς αν είναι ιστορική (str or None)
+            - active: Δεδομένα ενεργών διαδικασιών (dict)
+                - total: Σύνολο (int)
+                - baseline_timestamp: Timestamp baseline (str or None)
+                - changes: Αλλαγές (dict or None)
+            - all: Δεδομένα όλων των διαδικασιών (dict)
+                - total: Σύνολο (int)
+                - baseline_timestamp: Timestamp baseline (str or None)
+                - changes: Αλλαγές (dict or None)
+            - incoming: Δεδομένα εισερχόμενων αιτήσεων (dict)
+                - date: Ημερομηνία snapshot (str)
+                - reference_date: Ημερομηνία προηγούμενου snapshot (str or None)
+                - records: Λίστα εγγραφών (list)
+                - changes: Αλλαγές (dict)
+                - real_new: Νέες πραγματικές αιτήσεις (list)
+                - test_new: Νέες δοκιμαστικές αιτήσεις (list)
+                - stats: Στατιστικά (dict)
+    
+    Raises:
+        RuntimeError: Αν αποτύχει η ανάκτηση δεδομένων ή το login
+    """
+    root = get_project_root()
+    cfg_path = config_path or os.path.join(root, "config", "config.yaml")
+    config = load_config(cfg_path)
+
+    monitor = PKMMonitor(
+        base_url=config.get("base_url", "https://shde.pkm.gov.gr"),
+        urls=config.get("urls", {}),
+        api_params=config.get("api_params", {}),
+        login_params=config.get("login_params", {}),
+        check_interval=config.get("check_interval", 300),
+        username=config.get("username"),
+        password=config.get("password"),
+        session_cookies=config.get("session_cookies"),
+    )
+
+    _ensure_logged_in_silent(monitor)
+    all_procs, active_procs = _fetch_procedures_silent(monitor)
+
+    active_bl = load_baseline()
+    all_bl = load_all_procedures_baseline()
+
+    active_changes = compare_with_baseline(all_procs, active_bl) if active_bl else None
+    all_changes = compare_all_procedures_with_baseline(all_procs, all_bl) if all_bl else None
+
+    incoming_data = _prepare_incoming_silent(monitor, config)
+
+    # Έλεγχος αν είναι ιστορική σύγκριση
+    force_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
+    is_historical = force_date is not None
+    
+    digest = {
+        "generated_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "base_url": monitor.base_url,
+        "is_historical_comparison": is_historical,
+        "comparison_date": incoming_data.get('date') if is_historical else None,
+        "reference_date": incoming_data.get('reference_date') if is_historical else None,
+        "active": {
+            "total": len(active_procs),
+            "baseline_timestamp": active_bl.get("timestamp") if active_bl else None,
+            "changes": active_changes,
+        },
+        "all": {
+            "total": len(all_procs),
+            "baseline_timestamp": all_bl.get("timestamp") if all_bl else None,
+            "changes": all_changes,
+        },
+        "incoming": incoming_data,
+    }
+    return digest

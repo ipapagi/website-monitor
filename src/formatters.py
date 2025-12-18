@@ -1,22 +1,93 @@
 """Κοινές συναρτήσεις μορφοποίησης δεδομένων για εμφάνιση"""
 
+import os
+from typing import Dict
+
+_TEXT_WIDTHS_CACHE: Dict[str, int] | None = None
+
+
+def _get_text_max_widths() -> Dict[str, int]:
+    """Φορτώνει τα max widths από το config (με caching).
+
+    Κλειδιά: case_id, procedure, directory, party
+    Τιμές:
+    - >0: εφαρμόζεται truncation στο αντίστοιχο μήκος
+    - <=0 ή None: δεν εφαρμόζεται περιορισμός (no limit)
+    """
+    global _TEXT_WIDTHS_CACHE
+    # Runtime override via environment variable
+    full_text_flag = os.getenv("PKM_FULL_TEXT", "").strip().lower()
+    if full_text_flag in ("1", "true", "yes", "on"):
+        return {"case_id": 0, "procedure": 0, "directory": 0, "party": 0}
+
+    if _TEXT_WIDTHS_CACHE is not None:
+        return _TEXT_WIDTHS_CACHE
+
+    defaults = {"case_id": 15, "procedure": 60, "directory": 50, "party": 40}
+    widths = {}
+    try:
+        from config import get_project_root
+        from utils import load_config
+
+        cfg_path = os.path.join(get_project_root(), "config", "config.yaml")
+        cfg = load_config(cfg_path) or {}
+        raw = (cfg.get("text_max_widths")
+               or cfg.get("terminal_formatting", {}).get("text_max_widths")
+               or {})
+        for k, dv in defaults.items():
+            val = raw.get(k, dv)
+            if val is None:
+                widths[k] = 0
+            elif isinstance(val, str):
+                if val.lower() in ("none", "unlimited", "no-limit", "nolimit"):
+                    widths[k] = 0
+                else:
+                    try:
+                        widths[k] = int(val)
+                    except Exception:
+                        widths[k] = dv
+            else:
+                try:
+                    widths[k] = int(val)
+                except Exception:
+                    widths[k] = dv
+    except Exception:
+        widths = defaults.copy()
+
+    _TEXT_WIDTHS_CACHE = widths
+    return _TEXT_WIDTHS_CACHE
+
+
+def _truncate(value: str, maxlen: int) -> str:
+    if value is None:
+        return ""
+    if maxlen and maxlen > 0:
+        return str(value)[:maxlen]
+    return str(value)
+
 
 def format_incoming_record_text(rec):
-    """Μορφοποιεί ένα incoming record για text output (terminal)"""
-    case_id = rec.get('case_id', '')[:15]
-    protocol = rec.get('protocol_number', '')
-    date = rec.get('submitted_at', '')[:10]
-    procedure = rec.get('procedure', '')[:60]
-    directory = rec.get('directory', '')[:50]
-    party = rec.get('party', '')[:40]
-    doc_category = rec.get('document_category', '')
-    
+    """Μορφοποιεί ένα incoming record για text output (terminal)
+
+    Διαβάζει widths από το config (text_max_widths). Αν κάποια τιμή είναι 0/None,
+    δεν εφαρμόζεται περιορισμός για το αντίστοιχο πεδίο.
+    """
+    widths = _get_text_max_widths()
+
+    case_id = _truncate(rec.get("case_id", ""), widths.get("case_id", 15))
+    protocol = rec.get("protocol_number", "")
+    date = rec.get("submitted_at", "")[:10]
+    procedure = _truncate(rec.get("procedure", ""), widths.get("procedure", 60))
+    directory = _truncate(rec.get("directory", ""), widths.get("directory", 50))
+    party = _truncate(rec.get("party", ""), widths.get("party", 40))
+    doc_category = rec.get("document_category", "")
+
     lines = []
     lines.append(f"[{case_id}({protocol})] {date} - {doc_category}")
     lines.append(f"   📋 Διαδικασία: {procedure}")
     lines.append(f"   🏢 Δ/νση: {directory}")
     lines.append(f"   👤 Συναλλασσόμενος: {party}")
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def format_incoming_record_html(rec, icon, escape_fn):
