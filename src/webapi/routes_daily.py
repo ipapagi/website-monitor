@@ -45,9 +45,14 @@ async def get_sede_daily():
             "active_modified": len(active_changes.get("modified", [])),
             "all_new": len(all_changes.get("new", [])),
             "all_modified": len(all_changes.get("modified", [])),
+            # Αναλυτική αναφορά νέων αιτήσεων (πραγματικές, δοκιμαστικές, αφαιρεμένες)
+            "incoming_real_new": incoming.get("real_new", []),
+            "incoming_test_new": incoming.get("test_new", []),
+            "incoming_removed_list": incoming_changes.get("removed", []),
             "notes": [
                 "Use in Teams/Power Automate cards",
                 "Flat schema: no deep nesting for easy dynamic content mapping",
+                "incoming_real_new/test_new/removed_list contain full record details",
             ],
         }
 
