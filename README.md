@@ -139,6 +139,8 @@ python src/main.py --check-incoming-portal                # Έλεγχος νέ�
 python src/main.py --check-incoming-portal --enrich-all   # + εμπλουτισμός όλων με ελλιπή στοιχεία
 python src/main.py --compare-date 2025-12-05              # Σύγκριση snapshot ημερομηνίας
 python src/main.py --send-daily-email                     # Ημερήσια αναφορά (email + PDF)
+python src/main.py --export-incoming-xls                  # Εξαγωγή XLS (2 φύλλα: Δοκιμαστικές, Πραγματικές)
+python src/main.py --export-incoming-xls-all             # Εξαγωγή XLS με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές)
 ```
 
 #### Ιστορική σύγκριση ημερήσιας αναφοράς
@@ -187,11 +189,29 @@ python src/main.py                      # Ξεκινά continuous monitoring
 | `--analyze-test YYYY-MM-DD` | Αναλύει δοκιμαστικές/πραγματικές αιτήσεις |
 | `--analyze-current` | Ανάλυση τρεχουσών αιτήσεων |
 | `--send-daily-email` | Στέλνει ημερήσια αναφορά (email + PDF) |
+| `--export-incoming-xls` | Εξάγει Excel (.xls) με δύο φύλλα: "Δοκιμαστικές" και "Πραγματικές" νέες αιτήσεις |
+| `--export-incoming-xls-all` | Εξάγει Excel (.xls) με ΟΛΕΣ τις αιτήσεις του snapshot (δοκιμαστικές & πραγματικές) |
 | `--no-monitor` | Δεν ξεκινά continuous monitoring |
 
 ## VS Code Launch Configurations
 
 Το project περιλαμβάνει έτοιμες launch configurations στο `.vscode/launch.json` για εύκολο debugging.
+
+## FastAPI Server
+
+Εκκίνηση server για Teams/Power Automate και exports:
+
+```bash
+uvicorn src.main:app --reload
+```
+
+Χρήσιμα endpoints:
+- `/sede/daily`: Ημερήσια σύνοψη (flat JSON). Περιλαμβάνει επιπλέον λίστες:
+  - `incoming_real_new`: νέες πραγματικές αιτήσεις
+  - `incoming_test_new`: νέες δοκιμαστικές αιτήσεις
+  - `incoming_removed_list`: αφαιρεμένες αιτήσεις
+- `/sede/export/xls`: Επιστρέφει `.xls` με δύο φύλλα (Δοκιμαστικές, Πραγματικές) και στήλες: Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία.
+  - Παράμετρος `scope`: `new` (default) ή `all` για όλες τις αιτήσεις.
 
 ## License
 

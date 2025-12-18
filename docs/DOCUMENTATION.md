@@ -95,6 +95,23 @@ python -m src.main --send-daily-email
 python -m src.main --list-active
 ```
 
+### 6. Εξαγωγή Excel (.xls) νέων αιτήσεων
+Δημιουργεί αρχείο `.xls` με δύο φύλλα: **Δοκιμαστικές** και **Πραγματικές**, με στήλες:
+Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία.
+
+```bash
+python -m src.main --export-incoming-xls
+```
+Το αρχείο αποθηκεύεται στον φάκελο `data/` ως `incoming_new_{YYYY-MM-DD}.xls`.
+
+### 7. Εξαγωγή Excel (.xls) ΟΛΩΝ των αιτήσεων
+Εξάγει όλες τις αιτήσεις του snapshot (όχι μόνο τις νέες), ταξινομημένες σε δύο φύλλα (Δοκιμαστικές, Πραγματικές):
+
+```bash
+python -m src.main --export-incoming-xls-all
+```
+Το αρχείο αποθηκεύεται ως `incoming_all_{YYYY-MM-DD}.xls`.
+
 ---
 
 ## Αρχιτεκτονική Συστήματος
@@ -116,6 +133,21 @@ python -m src.main --list-active
 ## API & Δεδομένα
 
 ### Endpoints
+#### Daily Summary
+- **URL**: `/sede/daily`
+- **Method**: `GET`
+- **Notes**: Flat JSON κατάλληλο για Power Automate. Περιλαμβάνει πρόσθετες λίστες:
+  - `incoming_real_new`: νέες πραγματικές αιτήσεις
+  - `incoming_test_new`: νέες δοκιμαστικές αιτήσεις
+  - `incoming_removed_list`: αφαιρεμένες αιτήσεις
+
+#### Export XLS (Νέες Αιτήσεις)
+- **URL**: `/sede/export/xls`
+- **Method**: `GET`
+- **Response**: `.xls` αρχείο με δύο φύλλα (Δοκιμαστικές, Πραγματικές)
+- **Columns**: Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία
+ - **Query**: `scope=new|all` (default `new`). Όταν `all`, περιλαμβάνει όλες τις αιτήσεις του snapshot.
+
 
 #### 1. Login
 - **URL**: `/services/LoginServices/loginWeb`
