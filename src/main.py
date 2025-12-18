@@ -52,6 +52,8 @@ def parse_arguments():
                        help='Αναλύει τις τρέχουσες αιτήσεις για δοκιμαστικές/πραγματικές')
     parser.add_argument('--send-daily-email', action='store_true',
                        help='Στέλνει ημερήσιο email report (διαδικασίες + εισερχόμενα)')
+    parser.add_argument('--full-text', action='store_true',
+                        help='Απενεργοποιεί το truncation για την εκτύπωση στο terminal (μόνο για text view)')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -168,6 +170,9 @@ if FASTAPI_AVAILABLE:
 
 def main():
     args = parse_arguments()
+    # Runtime override for terminal formatting widths
+    if args.full_text:
+        os.environ['PKM_FULL_TEXT'] = '1'
     print("\n" + "="*80)
     print(f"🚀 PKM Website Monitor - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(80))
     print("="*80)
