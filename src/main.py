@@ -54,6 +54,10 @@ def parse_arguments():
                        help='Στέλνει ημερήσιο email report (διαδικασίες + εισερχόμενα)')
     parser.add_argument('--full-text', action='store_true',
                         help='Απενεργοποιεί το truncation για την εκτύπωση στο terminal (μόνο για text view)')
+    parser.add_argument('--export-incoming-xls', action='store_true',
+                        help='Εξάγει Excel (.xlsx) με νέες δοκιμαστικές και πραγματικές αιτήσεις')
+    parser.add_argument('--export-incoming-xls-all', action='store_true',
+                        help='Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές) του snapshot')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -191,6 +195,27 @@ def main():
             sys.exit(0)
         except Exception as exc:
             print(f"❌ Αποτυχία αποστολής ημερήσιου email: {exc}")
+            sys.exit(1)
+
+    if args.export_incoming_xls or args.export_incoming_xls_all:
+        # Δημιουργεί το XLS από το digest των νέων αιτήσεων
+        try:
+            from services.report_service import load_digest
+            from xls_export import build_requests_xls
+            digest = load_digest()
+            date_str = (digest.get('incoming', {}) or {}).get('date') or datetime.now().strftime('%Y-%m-%d')
+            out_dir = os.path.join(get_project_root(), 'data')
+            os.makedirs(out_dir, exist_ok=True)
+            scope = 'all' if args.export_incoming_xls_all else 'new'
+            if scope == 'all':
+                out_path = os.path.join(out_dir, "Διαδικασίες - εισερχόμενες αιτήσεις.xlsx")
+            else:
+                out_path = os.path.join(out_dir, f"incoming_{scope}_{date_str}.xlsx")
+            build_requests_xls(digest, scope=scope, file_path=out_path)
+            print(f"✅ Δημιουργήθηκε XLS ({scope}): {out_path}")
+            sys.exit(0)
+        except Exception as exc:
+            print(f"❌ Αποτυχία δημιουργίας XLS: {exc}")
             sys.exit(1)
     
     config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))

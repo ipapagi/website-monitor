@@ -163,6 +163,24 @@
             "args": ["--send-daily-email"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Monitor - Export Incoming XLS",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["--export-incoming-xls"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Monitor - Export Incoming XLS (All)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["--export-incoming-xls-all"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ],
     "inputs": [
