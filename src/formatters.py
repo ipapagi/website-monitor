@@ -74,12 +74,12 @@ def format_incoming_record_text(rec):
     """
     widths = _get_text_max_widths()
 
-    case_id = _truncate(rec.get("case_id", ""), widths.get("case_id", 15))
+    case_id = rec.get("case_id", "")
     protocol = rec.get("protocol_number", "")
     date = rec.get("submitted_at", "")[:10]
-    procedure = _truncate(rec.get("procedure", ""), widths.get("procedure", 60))
-    directory = _truncate(rec.get("directory", ""), widths.get("directory", 50))
-    party = _truncate(rec.get("party", ""), widths.get("party", 40))
+    procedure = rec.get("procedure", "")
+    directory = rec.get("directory", "")
+    party = rec.get("party", "")
     doc_category = rec.get("document_category", "")
 
     lines = []

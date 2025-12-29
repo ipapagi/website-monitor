@@ -390,8 +390,8 @@ class EmailNotifier:
                 return "<tr style='height: 0;'><td colspan='4'>—</td></tr>"
             for item in changes:
                 proc = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
-                code = esc(proc.get('κωδικός', ''))[:15]
-                title = esc(proc.get('τίτλος', ''))[:50]
+                code = esc(proc.get('κωδικός', ''))
+                title = esc(proc.get('τίτλος', ''))
                 status = esc(proc.get('ενεργή', ''))
                 rows += f"<tr style='height: 0;'><td>{esc(label)}</td><td>{code}</td><td>{title}</td><td>{status}</td></tr>"
             return rows or "<tr style='height: 0;'><td colspan='4'>—</td></tr>"
@@ -641,13 +641,13 @@ class EmailNotifier:
                     items = active_changes.get(change_type, [])
                     if items:
                         story.append(Paragraph(f"<i>{label} ({len(items)})</i>", styles['Normal']))
-                        proc_data = [[f"{label[:1]}", "Κωδ.", "Τίτλος"]]
+                        proc_data = [[f"{label[0:1]}", "Κωδ.", "Τίτλος"]]
                         for item in items:
                             proc = item.get('new', item) if isinstance(item, dict) and 'new' in item else item
                             proc_data.append([
                                 "✓",
-                                proc.get('κωδικός', '')[:10],
-                                proc.get('τίτλος', '')[:40]
+                                proc.get('κωδικός', ''),
+                                proc.get('τίτλος', '')
                             ])
                         proc_table = Table(proc_data, colWidths=[0.3*inch, 0.8*inch, 4.4*inch])
                         proc_table.setStyle(TableStyle([
