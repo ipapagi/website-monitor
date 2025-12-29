@@ -48,10 +48,11 @@ async def export_xls(scope: str = Query(default="new", pattern="^(new|all)$", de
         date_str = incoming.get("date") or report.get("generated_at", "")[:10]
 
         xls_bytes = build_requests_xls(report, scope=scope)
+        filename = "Διαδικασίες - εισερχόμενες αιτήσεις.xls" if scope == "all" else f"incoming_{scope}_{date_str}.xls"
         return StreamingResponse(
             iter([xls_bytes]),
             media_type="application/vnd.ms-excel",
-            headers={"Content-Disposition": f"attachment; filename=incoming_{scope}_{date_str}.xls"},
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except ImportError as ie:  # Missing xlwt
         return JSONResponse(content={"error": str(ie), "message": "Λείπει το xlwt για εξαγωγή .xls"}, status_code=500)

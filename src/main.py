@@ -207,7 +207,10 @@ def main():
             out_dir = os.path.join(get_project_root(), 'data')
             os.makedirs(out_dir, exist_ok=True)
             scope = 'all' if args.export_incoming_xls_all else 'new'
-            out_path = os.path.join(out_dir, f"incoming_{scope}_{date_str}.xls")
+            if scope == 'all':
+                out_path = os.path.join(out_dir, "Διαδικασίες - εισερχόμενες αιτήσεις.xls")
+            else:
+                out_path = os.path.join(out_dir, f"incoming_{scope}_{date_str}.xls")
             build_requests_xls(digest, scope=scope, file_path=out_path)
             print(f"✅ Δημιουργήθηκε XLS ({scope}): {out_path}")
             sys.exit(0)
