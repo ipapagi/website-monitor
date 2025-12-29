@@ -144,7 +144,7 @@ python -m src.main --export-incoming-xls-all
 #### Export XLS (Νέες Αιτήσεις)
 - **URL**: `/sede/export/xls`
 - **Method**: `GET`
-- **Response**: `.xls` αρχείο με δύο φύλλα (Δοκιμαστικές, Πραγματικές)
+- **Response**: `.xlsx` αρχείο με δύο φύλλα (Δοκιμαστικές, Πραγματικές)
 - **Columns**: Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία
  - **Query**: `scope=new|all` (default `new`). Όταν `all`, περιλαμβάνει όλες τις αιτήσεις του snapshot.
 

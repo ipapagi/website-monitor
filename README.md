@@ -189,8 +189,8 @@ python src/main.py                      # Ξεκινά continuous monitoring
 | `--analyze-test YYYY-MM-DD` | Αναλύει δοκιμαστικές/πραγματικές αιτήσεις |
 | `--analyze-current` | Ανάλυση τρεχουσών αιτήσεων |
 | `--send-daily-email` | Στέλνει ημερήσια αναφορά (email + PDF) |
-| `--export-incoming-xls` | Εξάγει Excel (.xls) με δύο φύλλα: "Δοκιμαστικές" και "Πραγματικές" νέες αιτήσεις |
-| `--export-incoming-xls-all` | Εξάγει Excel (.xls) με ΟΛΕΣ τις αιτήσεις του snapshot (δοκιμαστικές & πραγματικές) |
+| `--export-incoming-xls` | Εξάγει Excel (.xlsx) με δύο φύλλα: "Δοκιμαστικές" και "Πραγματικές" νέες αιτήσεις |
+| `--export-incoming-xls-all` | Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις του snapshot (δοκιμαστικές & πραγματικές) |
 | `--no-monitor` | Δεν ξεκινά continuous monitoring |
 
 ## VS Code Launch Configurations
@@ -210,7 +210,7 @@ uvicorn src.main:app --reload
   - `incoming_real_new`: νέες πραγματικές αιτήσεις
   - `incoming_test_new`: νέες δοκιμαστικές αιτήσεις
   - `incoming_removed_list`: αφαιρεμένες αιτήσεις
-- `/sede/export/xls`: Επιστρέφει `.xls` με δύο φύλλα (Δοκιμαστικές, Πραγματικές) και στήλες: Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία.
+- `/sede/export/xls`: Επιστρέφει `.xlsx` με δύο φύλλα (Δοκιμαστικές, Πραγματικές) και στήλες: Δ/νση, Αρ. Πρωτοκόλλου, Διαδικασία. Για scope=all, όνομα "Διαδικασίες - εισερχόμενες αιτήσεις.xlsx".
   - Παράμετρος `scope`: `new` (default) ή `all` για όλες τις αιτήσεις.
 
 ## License

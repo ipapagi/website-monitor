@@ -38,7 +38,7 @@ async def export_csv():
 
 @router.get("/sede/export/xls", tags=["Export"])
 async def export_xls(scope: str = Query(default="new", pattern="^(new|all)$", description="new: μόνο νέες, all: όλες οι αιτήσεις")):
-    """Επιστρέφει Excel (.xls) με δύο φύλλα: Δοκιμαστικές και Πραγματικές.
+    """Επιστρέφει Excel (.xlsx) με δύο φύλλα: Δοκιμαστικές και Πραγματικές.
 
     Επιλογή `scope`: "new" για νέες ή "all" για όλες οι αιτήσεις.
     """
@@ -48,13 +48,13 @@ async def export_xls(scope: str = Query(default="new", pattern="^(new|all)$", de
         date_str = incoming.get("date") or report.get("generated_at", "")[:10]
 
         xls_bytes = build_requests_xls(report, scope=scope)
-        filename = "Διαδικασίες - εισερχόμενες αιτήσεις.xls" if scope == "all" else f"incoming_{scope}_{date_str}.xls"
+        filename = "Διαδικασίες - εισερχόμενες αιτήσεις.xlsx" if scope == "all" else f"incoming_{scope}_{date_str}.xlsx"
         return StreamingResponse(
             iter([xls_bytes]),
-            media_type="application/vnd.ms-excel",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except ImportError as ie:  # Missing xlwt
-        return JSONResponse(content={"error": str(ie), "message": "Λείπει το xlwt για εξαγωγή .xls"}, status_code=500)
+    except ImportError as ie:  # Missing openpyxl
+        return JSONResponse(content={"error": str(ie), "message": "Λείπει το openpyxl για εξαγωγή .xlsx"}, status_code=500)
     except Exception as e:  # pragma: no cover
         return JSONResponse(content={"error": str(e), "message": "Αποτυχία export XLS"}, status_code=500)
