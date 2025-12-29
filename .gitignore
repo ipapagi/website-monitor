@@ -53,7 +53,7 @@ data/active_procedures_baseline.json
 data/incoming_requests/
 data/procedures_cache.json
 data/daily_report*.pdf
-data/*.xls
+data/*.xls*
 
 # Logs
 logs/*.log

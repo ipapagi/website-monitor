@@ -36,7 +36,7 @@ def _format_protocol(rec: Dict) -> str:
 
 
 def _write_sheet(ws, rows: List[Dict], title: str):
-    headers = ["Δ/νση", "Αρ. Πρωτοκόλλου", "Διαδικασία"]
+    headers = ["Δ/νση", "Αρ. Πρωτοκόλλου", "Διαδικασία", "Συναλλασσόμενος"]
 
     header_font = Font(bold=True) if Font else None
     header_fill = PatternFill("solid", fgColor="DAE8FC") if PatternFill else None
@@ -75,15 +75,18 @@ def _write_sheet(ws, rows: List[Dict], title: str):
         if header_fill:
             cell.fill = header_fill
 
-    col_vals = [[], [], []]
+    col_vals = [[], [], [], []]
     for rec in rows_sorted:
         col_vals[0].append(rec.get("directory", ""))
         col_vals[1].append(_format_protocol(rec))
         col_vals[2].append(rec.get("procedure", ""))
+        col_vals[3].append(rec.get("party", ""))
 
-    for idx in range(3):
+    for idx in range(4):
         max_len = max([len(str(v)) for v in (col_vals[idx] + [headers[idx]])], default=len(headers[idx]))
-        width_chars = min(max_len + 2, 80)
+        # Different max widths for each column: Directory (wider), Protocol, Procedure (wider), Party
+        max_width = [100, 40, 120, 60][idx]
+        width_chars = min(max_len + 2, max_width)
         col_letter = chr(ord("A") + idx)
         ws.column_dimensions[col_letter].width = width_chars
 
@@ -92,20 +95,21 @@ def _write_sheet(ws, rows: List[Dict], title: str):
         ws.cell(row=r, column=1, value=col_vals[0][i])
         ws.cell(row=r, column=2, value=col_vals[1][i])
         ws.cell(row=r, column=3, value=col_vals[2][i])
+        ws.cell(row=r, column=4, value=col_vals[3][i])
         r += 1
 
 
 def build_requests_xls(digest: Dict, scope: str = "new", file_path: str | None = None) -> bytes | str:
-        """Build an XLSX with two sheets (test, real).
+    """Build an XLSX with two sheets (test, real).
 
-        scope:
-            - "new": only today's new requests (incoming.real_new / incoming.test_new)
-            - "all": all requests from the snapshot (classified via test_users)
+    scope:
+      - "new": only today's new requests (incoming.real_new / incoming.test_new)
+      - "all": all requests from the snapshot (classified via test_users)
 
-        Returns bytes if file_path is None; else writes to file_path and returns the path.
-        """
-        if Workbook is None:
-                raise ImportError("openpyxl is not installed. Please 'pip install openpyxl'.")
+    Returns bytes if file_path is None; else writes to file_path and returns the path.
+    """
+    if Workbook is None:
+        raise ImportError("openpyxl is not installed. Please 'pip install openpyxl'.")
 
     incoming = digest.get("incoming", {})
     if scope == "all":
