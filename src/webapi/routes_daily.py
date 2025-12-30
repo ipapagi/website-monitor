@@ -50,9 +50,7 @@ async def get_sede_daily():
             "incoming_test_new": incoming.get("test_new", []),
             "incoming_removed_list": incoming_changes.get("removed", []),
             "notes": [
-                "Use in Teams/Power Automate cards",
-                "Flat schema: no deep nesting for easy dynamic content mapping",
-                "incoming_real_new/test_new/removed_list contain full record details",
+                "Χρήση σε κάρτες Teams/Power Automate"
             ],
         }
 
