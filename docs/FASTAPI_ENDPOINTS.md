@@ -124,3 +124,4 @@ console.log(report.active.total);  // 29
 - Χρησιμοποιεί τα ίδια δεδομένα και τη δυνατότητα ιστορικής σύγκρισης
 - Το server τρέχει στο `0.0.0.0:8000` (διαθέσιμο από οποιοδήποτε interface)
 - Για παραγωγή, χρησιμοποίησε reverse proxy (nginx, Cloudflare, κλπ)
+- Το `/sede/daily` μπορεί να τροφοδοτήσει Power Automate Flow που στέλνει adaptive card στο group chat υποστήριξης. Προαιρετικά, το Flow κατεβάζει το `/sede/export/xls?scope=new|all` και επισυνάπτει το ημερήσιο Excel log (νέες ή όλες οι αιτήσεις).

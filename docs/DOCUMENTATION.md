@@ -102,7 +102,7 @@ python -m src.main --list-active
 ```bash
 python -m src.main --export-incoming-xls
 ```
-Το αρχείο αποθηκεύεται στον φάκελο `data/` ως `incoming_new_{YYYY-MM-DD}.xls`.
+Το αρχείο αποθηκεύεται στον φάκελο `data/` ως `incoming_new_{YYYY-MM-DD}.xls` και λειτουργεί ως ημερήσιο αρχείο καταγραφής νέων αιτήσεων.
 
 ### 7. Εξαγωγή Excel (.xls) ΟΛΩΝ των αιτήσεων
 Εξάγει όλες τις αιτήσεις του snapshot (όχι μόνο τις νέες), ταξινομημένες σε δύο φύλλα (Δοκιμαστικές, Πραγματικές):
@@ -110,7 +110,7 @@ python -m src.main --export-incoming-xls
 ```bash
 python -m src.main --export-incoming-xls-all
 ```
-Το αρχείο αποθηκεύεται ως `incoming_all_{YYYY-MM-DD}.xls`.
+Το αρχείο αποθηκεύεται ως `incoming_all_{YYYY-MM-DD}.xls` και περιέχει το πλήρες ιστορικό αιτήσεων της ημέρας (πραγματικές/δοκιμαστικές) ως καταγραφή.
 
 ---
 
@@ -140,6 +140,10 @@ python -m src.main --export-incoming-xls-all
   - `incoming_real_new`: νέες πραγματικές αιτήσεις
   - `incoming_test_new`: νέες δοκιμαστικές αιτήσεις
   - `incoming_removed_list`: αφαιρεμένες αιτήσεις
+
+##### Power Automate / Teams χρήση
+- Το flat JSON (`/sede/daily`) τροφοδοτεί Flow που στέλνει adaptive card στο group chat υποστήριξης.
+- Στο ίδιο Flow μπορείς να κατεβάζεις το `/sede/export/xls?scope=new|all` για να επισυνάπτεις το ημερήσιο `.xlsx` log.
 
 #### Export XLS (Νέες Αιτήσεις)
 - **URL**: `/sede/export/xls`
