@@ -38,8 +38,10 @@ class PKMSession:
             return False
         
         try:
+            from datetime import datetime
             print("\n" + "-"*80)
-            print_status("🔐 ΕΝΑΡΞΗ ΔΙΑΔΙΚΑΣΙΑΣ ΣΥΝΔΕΣΗΣ", 'info')
+            current_date = datetime.now().strftime('%d/%m/%Y')
+            print_status(f"🔐 ΕΝΑΡΞΗ ΔΙΑΔΙΚΑΣΙΑΣ ΣΥΝΔΕΣΗΣ - {current_date}", 'info')
             
             # GET login page για cookies
             self.session.get(self.login_page_url, verify=False, timeout=10)
