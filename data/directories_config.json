@@ -1,0 +1,227 @@
+{
+  "description": "Διευθύνσεις, Περιφερειακές Ενότητες και Email Υπηρεσιών - PKM Monitor",
+  "last_updated": "2026-02-03",
+  "note": "Συμπληρώστε τα email fields. Αυτό το αρχείο φορτώνεται αυτόματα για τη δρομολόγηση αιτήσεων.",
+  "directories": [
+    {
+      "id": "dir_001",
+      "name": "ΔΙΕΥΘΥΝΣΗ ΔΗΜΟΣΙΑΣ ΥΓΕΙΑΣ ΚΑΙ ΚΟΙΝΩΝΙΚΗΣ ΜΕΡΙΜΝΑΣ",
+      "short_name": "ΔΗΜΟΣΙΑ ΥΓΕΙΑ",
+      "regional_units": [
+        {
+          "id": "ru_001_1",
+          "name": "Π.Ε. ΘΕΣΣΑΛΟΝΙΚΗΣ",
+          "email": "dykm@pkm.gov.gr",
+          "phone": "+30 2310 123456",
+          "responsible": ""
+        },
+        {
+          "id": "ru_001_2",
+          "name": "Π.Ε. ΧΑΛΚΙΔΙΚΗΣ",
+          "email": "dypeh@halkidiki.gov.gr",
+          "phone": "+30 2310 654321",
+          "responsible": ""
+        },
+        {
+          "id": "ru_001_3",
+          "name": "Π.Ε. ΚΙΛΚΙΣ",
+          "email": "ygeias_pronoias@kilkis.pkm.gov.gr",
+          "phone": "+30 2341 123456",
+          "responsible": ""
+        },
+        {
+          "id": "ru_001_4",
+          "name": "Π.Ε. ΠΕΛΛΑΣ",
+          "email": "",
+          "phone": "+30 2332 123456",
+          "responsible": ""
+        },
+        {
+          "id": "ru_001_5",
+          "name": "Π.Ε. ΗΜΑΘΙΑΣ",
+          "email": "dygeias@imathia.pkm.gov.gr",
+          "phone": "+30 2332 234567",
+          "responsible": ""
+        }
+      ],
+      "org_chart_url": "https://www.pkm.gov.gr/org_chart/dieythinsi-genikis-dieythynsis-dimosias-ygeias-kai-koinonikis-merimnas/dieythynsi-dimosias-ygeias-kai-koinonikis-merimnas-me-thessalonikis/"
+    },
+    {
+      "id": "dir_002",
+      "name": "ΔΙΕΥΘΥΝΣΗ ΑΝΑΠΤΥΞΗΣ ΚΑΙ ΠΕΡΙΒΑΛΛΟΝΤΟΣ",
+      "short_name": "ΑΝΑΠΤΥΞΗ",
+      "regional_units": [
+        {
+          "id": "ru_002_1",
+          "name": "Π.Ε. ΘΕΣΣΑΛΟΝΙΚΗΣ",
+          "email": "danapt@pkm.gov.gr",
+          "phone": "+30 2310 234567",
+          "responsible": ""
+        },
+        {
+          "id": "ru_002_2",
+          "name": "Π.Ε. ΧΑΛΚΙΔΙΚΗΣ",
+          "email": "viomixanias9@halkidiki.gov.gr",
+          "phone": "+30 2310 345678",
+          "responsible": ""
+        },
+        {
+          "id": "ru_002_3",
+          "name": "Π.Ε. ΚΙΛΚΙΣ",
+          "email": "anaptiksis@kilkis.pkm.gov.gr",
+          "phone": "+30 2341 234567",
+          "responsible": ""
+        },
+        {
+          "id": "ru_002_4",
+          "name": "Π.Ε. ΠΕΛΛΑΣ",
+          "email": "",
+          "phone": "+30 2332 345678",
+          "responsible": ""
+        },
+        {
+          "id": "ru_002_5",
+          "name": "Π.Ε. ΗΜΑΘΙΑΣ",
+          "email": "danbio@imathia.pkm.gov.gr",
+          "phone": "+30 2332 456789",
+          "responsible": ""
+        }
+      ],
+      "org_chart_url": "https://www.pkm.gov.gr/org_chart/geniki-dieythynsi-anaptyxis-kai-perivallontos/dieythynsi-anaptyxis-kai-perivallontos-me-thessalonikis/"
+    },
+    {
+      "id": "dir_003",
+      "name": "ΔΙΕΥΘΥΝΣΗ ΟΙΚΟΝΟΜΙΚΟΥ",
+      "short_name": "ΟΙΚΟΝΟΜΙΚΟ",
+      "regional_units": [
+        {
+          "id": "ru_003_1",
+          "name": "Π.Ε. ΘΕΣΣΑΛΟΝΙΚΗΣ",
+          "email": "decon@pkm.gov.gr",
+          "phone": "+30 2310 345678",
+          "responsible": ""
+        },
+        {
+          "id": "ru_003_2",
+          "name": "Π.Ε. ΧΑΛΚΙΔΙΚΗΣ",
+          "email": "srokanas@halkidiki.gov.gr",
+          "phone": "+30 2310 456789",
+          "responsible": ""
+        },
+        {
+          "id": "ru_003_3",
+          "name": "Π.Ε. ΚΙΛΚΙΣ",
+          "email": "dioikisi@kilkis.pkm.gov.gr",
+          "phone": "+30 2341 345678",
+          "responsible": ""
+        },
+        {
+          "id": "ru_003_4",
+          "name": "Π.Ε. ΠΕΛΛΑΣ",
+          "email": "kkiriakopoulou@1177.syzefxis.gov.gr",
+          "phone": "+30 2332 456789",
+          "responsible": ""
+        },
+        {
+          "id": "ru_003_5",
+          "name": "Π.Ε. ΗΜΑΘΙΑΣ",
+          "email": "ddproso@imathia.pkm.gov.gr",
+          "phone": "+30 2332 567890",
+          "responsible": ""
+        }
+      ],
+      "org_chart_url": "https://www.pkm.gov.gr/org_chart/geniki-dieythynsi-esoterikis-organosis-kai-leitoyrgias/dieythynsi-oikonomikoy-pkm/"
+    },
+    {
+      "id": "dir_004",
+      "name": "ΔΙΕΥΘΥΝΣΗ ΑΝΘΡΩΠΙΝΟΥ ΔΥΝΑΜΙΚΟΥ ΚΑΙ ΔΙΑΧΕΙΡΙΣΗΣ ΠΟΙΟΤΗΤΑΣ",
+      "short_name": "ΔΙΟΙΚΗΤΙΚΟ",
+      "is_central": true,
+      "regional_units": [
+        {
+          "id": "ru_004_1",
+          "name": "ΠΚΜ",
+          "email": "ddioik@pkm.gov.gr",
+          "phone": "+30 2313 330100",
+          "responsible": ""
+        }
+      ],
+      "org_chart_url": "https://www.pkm.gov.gr/org_chart/geniki-dieythynsi-esoterikis-organosis-kai-leitoyrgias/dieythynsi-anthropinoy-dynamikoy-kai-diacheirisis-poiotitas-pkm/"
+    },
+    {
+      "id": "dir_005",
+      "name": "ΔΙΕΥΘΥΝΣΗ ΠΟΛΙΤΙΚΗΣ ΠΡΟΣΤΑΣΙΑΣ",
+      "short_name": "ΠΟΛΙΤΙΚΗ ΠΡΟΣΤΑΣΙΑ",
+      "regional_units": [
+        {
+          "id": "ru_005_1",
+          "name": "Π.Ε. ΘΕΣΣΑΛΟΝΙΚΗΣ",
+          "email": "ppro@pkm.gov.gr",
+          "phone": "+30 2310 567890",
+          "responsible": ""
+        },
+        {
+          "id": "ru_005_2",
+          "name": "Π.Ε. ΧΑΛΚΙΔΙΚΗΣ",
+          "email": "polpro@halkidiki.gov.gr",
+          "phone": "+30 2310 678901",
+          "responsible": ""
+        },
+        {
+          "id": "ru_005_3",
+          "name": "Π.Ε. ΚΙΛΚΙΣ",
+          "email": "polpro@kilkis.pkm.gov.gr",
+          "phone": "+30 2341 567890",
+          "responsible": ""
+        },
+        {
+          "id": "ru_005_4",
+          "name": "Π.Ε. ΠΕΛΛΑΣ",
+          "email": "bibitsos@1177.syzefxis.gov.gr",
+          "phone": "+30 2332 678901",
+          "responsible": ""
+        },
+        {
+          "id": "ru_005_5",
+          "name": "Π.Ε. ΗΜΑΘΙΑΣ",
+          "email": "polpros@imathia.pkm.gov.gr",
+          "phone": "+30 2332 789012",
+          "responsible": ""
+        }
+      ],
+      "org_chart_url": "https://www.pkm.gov.gr/org_chart/aytotelis-dieythynsi-politikis-prostasias/"
+    }
+  ],
+  "regional_units_map": {
+    "ΘΕΣΣΑΛΟΝΙΚΗΣ": {
+      "id": "ru_regional_1",
+      "name": "Π.Ε. ΘΕΣΣΑΛΟΝΙΚΗΣ",
+      "email": "perifereia.thessaloniki@rcm.gov.gr",
+      "phone": "+30 2310 999999"
+    },
+    "ΧΑΛΚΙΔΙΚΗΣ": {
+      "id": "ru_regional_2",
+      "name": "Π.Ε. ΧΑΛΚΙΔΙΚΗΣ",
+      "email": "perifereia.chalkidiki@rcm.gov.gr",
+      "phone": "+30 2310 888888"
+    },
+    "ΚΙΛΚΙΣ": {
+      "id": "ru_regional_3",
+      "name": "Π.Ε. ΚΙΛΚΙΣ",
+      "email": "perifereia.kilkis@rcm.gov.gr",
+      "phone": "+30 2341 999999"
+    },
+    "ΠΕΛΛΑΣ": {
+      "id": "ru_regional_4",
+      "name": "Π.Ε. ΠΕΛΛΑΣ",
+      "email": "perifereia.pellas@rcm.gov.gr",
+      "phone": "+30 2332 888888"
+    },
+    "ΗΜΑΘΙΑΣ": {
+      "id": "ru_regional_5",
+      "name": "Π.Ε. ΗΜΑΘΙΑΣ",
+      "email": "perifereia.imathia@rcm.gov.gr",
+      "phone": "+30 2332 777777"
+    }
+  }
+}

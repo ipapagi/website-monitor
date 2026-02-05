@@ -69,11 +69,20 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
     
     # Έλεγχος αν υπάρχει forced baseline ημερομηνία στο .env
     force_baseline_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")
+    prev_date = None  # Ορισμός default
+    
     if force_baseline_date:
-        # Χρησιμοποίησε το snapshot της forced ημερομηνίας αντί για σημερινό
+        # Χρησιμοποίησε ΜΟΝΟ το snapshot της forced ημερομηνίας (όχι ενδιάμεσες)
         print(f"ℹ️  Χρήση αναγκαστικής ημερομηνίας snapshot: {force_baseline_date}")
-        forced_snap = load_incoming_snapshot(force_baseline_date)
-        if not forced_snap:
+
+        # Ανάκτηση όλων των διαθέσιμων incoming dates
+        from incoming import get_all_incoming_dates, load_incoming_snapshot
+        all_dates = sorted(get_all_incoming_dates())
+
+        # Βρες το index της forced ημερομηνίας
+        try:
+            start_idx = all_dates.index(force_baseline_date)
+        except ValueError:
             print(f"⚠️  Δεν βρέθηκε snapshot για {force_baseline_date}")
             return {
                 "date": today,
@@ -84,14 +93,28 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
                 "test_new": [],
                 "stats": {"total": 0, "real": 0, "test": 0, "test_breakdown": {}},
             }
-        
-        # Χρησιμοποίησε τα records από το forced snapshot
-        records = forced_snap.get('records', [])
-        today = force_baseline_date  # Άλλαξε το "today" στην forced ημερομηνία
-        
-        # Βρες το προηγούμενο snapshot της forced ημερομηνίας
-        prev_date, prev_snap = load_previous_incoming_snapshot(force_baseline_date)
-        has_prev = prev_snap is not None
+
+        # Υπολόγισε μόνο το όριο range (για ενημέρωση), χωρίς φόρτωση ενδιάμεσων
+        if start_idx + 1 < len(all_dates):
+            end_date = all_dates[start_idx + 1]
+            print(f"📅 Range: {force_baseline_date} μέχρι {end_date} (αποκλειστικά)")
+        else:
+            end_date = today
+            print(f"📅 Range: {force_baseline_date} μέχρι {end_date} (σήμερα)")
+
+        # Φόρτωσε μόνο το forced snapshot
+        forced_snap = load_incoming_snapshot(force_baseline_date)
+        records = forced_snap.get('records', []) if forced_snap else []
+        today = force_baseline_date  # Το date είναι το snapshot που εξετάζουμε
+
+        # Χρησιμοποίησε το snapshot πριν το forced date ως baseline
+        if start_idx > 0:
+            prev_date = all_dates[start_idx - 1]
+            prev_snap = load_incoming_snapshot(prev_date)
+            has_prev = prev_snap is not None
+        else:
+            prev_snap = None
+            has_prev = False
     else:
         # Κανονική ροή: φέρε δεδομένα από API
         records = simplify_incoming_records(data.get("data", []))
@@ -138,11 +161,21 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
     }
 
 
-def build_daily_digest(config_path: str | None = None) -> dict:
-    """Συγκεντρώνει όλα τα δεδομένα για την ημερήσια αναφορά."""
+def build_daily_digest(config_path: str | None = None, target_date: str | None = None) -> dict:
+    """Συγκεντρώνει όλα τα δεδομένα για την ημερήσια αναφορά.
+    
+    Args:
+        config_path: Διαδρομή config file
+        target_date: Ημερομηνία για δοκιμή (format: YYYY-MM-DD)
+    """
     root = get_project_root()
     cfg_path = config_path or os.path.join(root, "config", "config.yaml")
     config = load_config(cfg_path)
+    
+    # Αν περάστηκε target_date, ορίστε το environment variable
+    if target_date:
+        os.environ['INCOMING_FORCE_BASELINE_DATE'] = target_date
+        print(f"📅 Ημερομηνία δοκιμής: {target_date}")
 
     monitor = PKMMonitor(
         base_url=config.get("base_url", "https://shde.pkm.gov.gr"),

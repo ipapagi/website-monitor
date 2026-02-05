@@ -34,6 +34,11 @@ def list_incoming_snapshot_dates():
                 continue
     return sorted(dates)
 
+def get_all_incoming_dates():
+    """Επιστρέφει λίστα ημερομηνιών με snapshots ως strings (YYYY-MM-DD)"""
+    dates = list_incoming_snapshot_dates()
+    return [d.strftime("%Y-%m-%d") for d in dates]
+
 def load_previous_incoming_snapshot(current_date_str):
     """Φορτώνει το προηγούμενο snapshot"""
     current_date = datetime.strptime(current_date_str, "%Y-%m-%d").date()

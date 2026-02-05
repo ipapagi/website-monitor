@@ -99,6 +99,46 @@ class EmailNotifier:
             print(f"Failed to send email to {to_email}: {str(e)}")
             return False
     
+    def send_email_message(self, msg: MIMEMultipart) -> bool:
+        """
+        Send a MIMEMultipart email message directly
+        
+        Args:
+            msg: MIMEMultipart message object (must have From, To, Subject set)
+            
+        Returns:
+            bool: True if email sent successfully, False otherwise
+        """
+        if not self.is_enabled():
+            print("Email notifications are disabled")
+            return False
+        
+        if not msg.get('To'):
+            print("Error: Email message must have 'To' field set")
+            return False
+            
+        try:
+            to_email = msg['To']
+            
+            # Connect to SMTP server and send
+            if self.use_tls:
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.login(self.email_address, self.email_password)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                    server.login(self.email_address, self.email_password)
+                    server.send_message(msg)
+
+            print(f"Email sent successfully to {to_email}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return False
+    
     def notify_error(self, website_name: str, error_message: str, url: str, timestamp: str = None):
         """
         Notify admins about website error - Comprehensive report format

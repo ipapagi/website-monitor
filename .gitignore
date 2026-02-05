@@ -54,6 +54,8 @@ data/incoming_requests/
 data/procedures_cache.json
 data/daily_report*.pdf
 data/*.xls*
+data/prepare_eml_files/
+data/temp_attachments/
 
 # Logs
 logs/*.log

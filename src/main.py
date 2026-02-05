@@ -58,6 +58,10 @@ def parse_arguments():
                         help='Εξάγει Excel (.xlsx) με νέες δοκιμαστικές και πραγματικές αιτήσεις')
     parser.add_argument('--export-incoming-xls-all', action='store_true',
                         help='Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές) του snapshot')
+    parser.add_argument('--send-directory-emails', action='store_true',
+                       help='Δημιουργεί και στέλνει emails ανά Διεύθυνση με attachments για νέες αιτήσεις')
+    parser.add_argument('--send-directory-emails-to-chat', action='store_true',
+                       help='Δημιουργεί, στέλνει emails ανά Διεύθυνση ΚΑΙ αποστέλνει σύνοψη στο chat group υποστήριξης')
     return parser.parse_args()
 
 def needs_data_fetch(args):
@@ -195,6 +199,18 @@ def main():
             sys.exit(0)
         except Exception as exc:
             print(f"❌ Αποτυχία αποστολής ημερήσιου email: {exc}")
+            sys.exit(1)
+
+    if args.send_directory_emails or args.send_directory_emails_to_chat:
+        from directory_emails import send_directory_emails
+
+        try:
+            send_to_chat = args.send_directory_emails_to_chat
+            send_directory_emails(send_to_chat=send_to_chat)
+            print("✅ Emails ανά Διεύθυνση εστάλησαν")
+            sys.exit(0)
+        except Exception as exc:
+            print(f"❌ Αποτυχία αποστολής emails ανά Διεύθυνση: {exc}")
             sys.exit(1)
 
     if args.export_incoming_xls or args.export_incoming_xls_all:
