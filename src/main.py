@@ -58,6 +58,8 @@ def parse_arguments():
                         help='Εξάγει Excel (.xlsx) με νέες δοκιμαστικές και πραγματικές αιτήσεις')
     parser.add_argument('--export-incoming-xls-all', action='store_true',
                         help='Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές) του snapshot')
+    parser.add_argument('--report-open-apps', action='store_true',
+                        help='Εμφανίζει στο terminal αναφορά ανοικτών δοκιμαστικών αιτήσεων (auto-close vs manual)')
     parser.add_argument('--send-directory-emails', action='store_true',
                        help='Δημιουργεί και στέλνει emails ανά Διεύθυνση με attachments για νέες αιτήσεις')
     parser.add_argument('--send-directory-emails-to-chat', action='store_true',
@@ -221,6 +223,18 @@ def main():
         login_params=config.get('login_params', {}), check_interval=config.get('check_interval', 300),
         username=config.get('username'), password=config.get('password'),
         session_cookies=config.get('session_cookies'))
+
+    if args.report_open_apps:
+        try:
+            from services.report_service import load_digest
+            from xls_export import print_open_tests_terminal
+            digest = load_digest()
+            print_open_tests_terminal(digest, monitor_instance=monitor)
+            sys.exit(0)
+        except Exception as exc:
+            import traceback; traceback.print_exc()
+            print(f"❌ Αποτυχία αναφοράς ανοικτών δοκιμαστικών: {exc}")
+            sys.exit(1)
 
     if args.export_incoming_xls or args.export_incoming_xls_all:
         # Δημιουργεί το XLS από το digest των νέων αιτήσεων

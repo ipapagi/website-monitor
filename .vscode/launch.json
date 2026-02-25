@@ -183,6 +183,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Monitor - Report Open Test Applications",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["--report-open-apps"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Weekly Report - Generate",
             "type": "debugpy",
             "request": "launch",

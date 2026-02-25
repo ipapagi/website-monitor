@@ -173,6 +173,99 @@ def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = No
     ws.freeze_panes = "A3"
 
 
+def print_open_tests_terminal(digest: Dict, monitor_instance=None) -> None:
+    """Εκτυπώνει στο terminal αναφορά με όλες τις ΑΝΟΙΚΤΕΣ δοκιμαστικές αιτήσεις.
+    
+    Ανοικτή = δοκιμαστική (per classify_records) ΚΑΙ ΔΕΝ βρίσκεται στις διεκπεραιωμένες.
+    Διαχωρισμός σε δύο ουρές:
+      - AUTO-CLOSE: έχει ανατεθεί σε υπάλληλο (charged=True)
+      - MANUAL:     δεν έχει ανάθεση (charged=False)
+    """
+    # Φόρτωση δεδομένων
+    settled_by_case_id = _load_settled_cases(monitor_instance=monitor_instance)
+
+    incoming = digest.get("incoming", {})
+    try:
+        from test_users import classify_records
+        _real, test_rows = classify_records(incoming.get("records", []) or [])
+    except Exception as exc:
+        print(f"❌ Αποτυχία classify_records: {exc}")
+        return
+
+    # Κράτα μόνο ανοικτές (χωρίς ημερομηνία διεκπεραίωσης)
+    open_tests = []
+    for rec in test_rows:
+        case_id = str(rec.get("case_id", "")).strip()
+        submission_year = str(rec.get("submission_year", "")).strip()
+        settled_date = ""
+
+        if submission_year and case_id:
+            info = settled_by_case_id.get(f"{submission_year}/{case_id}", {})
+            settled_date = info.get("settled_date", "")
+
+        # Fallback: protocol_number
+        if not settled_date:
+            proto = str(rec.get("protocol_number", "")).strip()
+            if proto:
+                settled_date = settled_by_case_id.get(proto, {}).get("settled_date", "")
+
+        if not settled_date:
+            open_tests.append(rec)
+
+    # Διαχωρισμός σε auto-close / manual
+    auto_close = [r for r in open_tests if r.get("_charge", {}).get("charged")]
+    manual     = [r for r in open_tests if not r.get("_charge", {}).get("charged")]
+
+    reason_labels = {
+        'internal_user': 'Εσωτ. χρήστης',
+        'test_user':     'Δοκ. χρήστης',
+        'test_company':  'Δοκ. εταιρεία',
+    }
+
+    def _fmt_date(s):
+        if not s:
+            return ''
+        try:
+            dt = datetime.fromisoformat(str(s).replace(" ", "T"))
+            return dt.strftime("%d-%m-%Y")
+        except Exception:
+            return str(s)[:10]
+
+    def _print_group(rows, label, icon):
+        print(f"\n{icon} {label} ({len(rows)} αιτήσεις)")
+        if not rows:
+            print("   (καμία)")
+            return
+        print(f"  {'Α/Α':<4} {'Case ID':<12} {'Ημ/νία Υποβ.':<14} {'Λόγος':<18} {'Διεύθυνση':<45} {'Αιτών / Party'}")
+        print("  " + "-" * 120)
+        for idx, r in enumerate(rows, start=1):
+            cid   = str(r.get("case_id", ""))
+            date_ = _fmt_date(r.get("submitted_at", ""))
+            reason = reason_labels.get(r.get("test_reason", ""), r.get("test_reason", ""))
+            direc  = (r.get("directory") or "")[:44]
+            party  = (r.get("party") or "")[:50]
+            print(f"  {idx:<4} {cid:<12} {date_:<14} {reason:<18} {direc:<45} {party}")
+
+    total = len(open_tests)
+    total_test = len(test_rows)
+    total_settled_test = total_test - total
+
+    print("\n" + "="*80)
+    print(" 🧪 ΑΝΟΙΚΤΕΣ ΔΟΚΙΜΑΣΤΙΚΕΣ ΑΙΤΗΣΕΙΣ".center(80))
+    print("="*80)
+    print(f"  Σύνολο δοκιμαστικών (snapshot):   {total_test}")
+    print(f"  Ήδη διεκπεραιωμένες (κλειστές):   {total_settled_test}")
+    print(f"  Ανοικτές (χρειάζονται ενέργεια):  {total}")
+    print(f"    ├─ ✅ Ανατεθειμένες (charged=True):  {len(auto_close)}")
+    print(f"    └─ ⚠️  Χωρίς ανάθεση (charged=False): {len(manual)}")
+    print("="*80)
+
+    _print_group(auto_close, "Ανατεθειμένες δοκιμαστικές (charged=True — υποψήφιες για μελλοντικό αυτόματο κλείσιμο)", "✅")
+    _print_group(manual,     "Χωρίς ανάθεση (charged=False — απαιτείται χειροκίνητη διαχείριση)", "⚠️")
+
+    print("\n" + "="*80 + "\n")
+
+
 def build_requests_xls(digest: Dict, scope: str = "new", file_path: str | None = None, monitor_instance = None) -> bytes | str:
     """Build an XLSX with two sheets (test, real).
 
