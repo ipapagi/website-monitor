@@ -143,6 +143,18 @@ def _prepare_incoming(monitor: PKMMonitor, config: dict):
     if to_enrich:
         enrich_record_details(monitor, to_enrich)
 
+    # Ανάκτηση χρεώσεων και εμπλουτισμός records
+    try:
+        from charges import fetch_charges, add_charge_info
+        print("📋 Ανάκτηση χρεώσεων υπαλλήλων...")
+        charges_records, charges_by_pkm = fetch_charges(monitor)
+        print(f"   Βρέθηκαν {len(charges_records)} χρεώσεις")
+        records = add_charge_info(records, charges_by_pkm, monitor=monitor, enrich_missing=True)
+        print(f"   ✅ Εμπλουτισμός με χρεώσεις ολοκληρώθηκε (με API enrichment)")
+    except Exception as exc:
+        print(f"   ⚠️  Αποτυχία ανάκτησης χρεώσεων: {exc}")
+        # Συνεχίζουμε χωρίς χρεώσεις
+
     changes = compare_incoming_records(records, prev_snap)
     real_new, test_new = classify_records(changes.get("new", []))
     stats = get_record_stats(records)

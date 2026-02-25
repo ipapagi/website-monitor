@@ -1,0 +1,369 @@
+{
+  "timestamp": "2026-02-16T15:05:37.631371",
+  "summary": {
+    "total_records": 51,
+    "pkm_extraction_success": 51,
+    "records_with_both_fields": 51,
+    "same_user_count": 44,
+    "different_user_count": 7
+  },
+  "details": [
+    {
+      "pkm": "106129",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΠΕΡΙΣΤΕΡΑ ΝΙΚΟΛΕΤΤΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/106129 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "106029",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/106029 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "105782",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/105782 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "105362",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/105362 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "105336",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΜΗΛΙΑΔΟΥ ΔΕΣΠΟΙΝΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/105336 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "105285",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/105285 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "105139",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/105139 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "104991",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/104991 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "93873",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/93873 &Mu;&Omicron;&Upsilon;&Rho;&Alpha;"
+    },
+    {
+      "pkm": "45464",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/45464 &Lambda;&Omicron;&Upsilon;&Rho;&De"
+    },
+    {
+      "pkm": "45464",
+      "user_to": "ΚΑΡΑΓΚΑΣΙΔΟΥ ΝΙΝΑ",
+      "user_from": "ΧΑΤΖΗΝΑΣΙΟΥ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/45464 &Lambda;&Omicron;&Upsilon;&Rho;&De"
+    },
+    {
+      "pkm": "72131",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/72131 &Gamma;&Alpha;&Rho;&Omicron;&Upsil"
+    },
+    {
+      "pkm": "71975",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/71975 &Mu;&Omicron;&Upsilon;&Rho;&Alpha;"
+    },
+    {
+      "pkm": "71683",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/71683 &Mu;&Omicron;&Upsilon;&Rho;&Alpha;"
+    },
+    {
+      "pkm": "65518",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2026/65518 &Mu;&Omicron;&Upsilon;&Rho;&Alpha;"
+    },
+    {
+      "pkm": "904429",
+      "user_to": "ΝΤΟΥΜΠΑΡΑ ΜΑΡΙΑ",
+      "user_from": "ΚΕΡΑΜΑΡΗ ΕΛΕΝΗ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/904429 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "902989",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902989 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "902996",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902996 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "902954",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902954 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "902775",
+      "user_to": "ΤΕΡΖΟΓΛΟΥ ΕΙΡΗΝΗ ΧΡΥΣΟΒΑΛΑΝΤΟΥ",
+      "user_from": "ΤΕΡΖΟΓΛΟΥ ΕΙΡΗΝΗ ΧΡΥΣΟΒΑΛΑΝΤΟΥ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902775 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "902896",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902896 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "902054",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/902054 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "901575",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/901575 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "901499",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΡΕΝΑΣΚΟ ΙΝΔΙΑΝΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/901499 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "901224",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/901224 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "900879",
+      "user_to": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "user_from": "ΑΔΑΜΙΔΟΥ ΑΣΗΜΕΝΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/900879 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "872640",
+      "user_to": "ΔΗΜΟΥ ΠΟΛΥΞΕΝΗ",
+      "user_from": "ΔΗΜΟΥ ΠΟΛΥΞΕΝΗ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/872640 &Pi;&Alpha;&Pi;&Alpha;&Gamma;&Iot"
+    },
+    {
+      "pkm": "863965",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/863965 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "851770",
+      "user_to": "ΓΙΑΝΝΑΚΙΔΟΥ ΑΓΓΕΛΙΚΗ",
+      "user_from": "ΡΕΝΑΣΚΟ ΙΝΔΙΑΝΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/851770 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "851662",
+      "user_to": "ΓΙΑΝΝΑΚΙΔΟΥ ΑΓΓΕΛΙΚΗ",
+      "user_from": "ΡΕΝΑΣΚΟ ΙΝΔΙΑΝΑ",
+      "are_same": false,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/851662 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "852140",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/852140 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "852044",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/852044 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "851802",
+      "user_to": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "user_from": "ΚΑΡΑΚΙΤΗΣ ΧΑΡΑΛΑΜΠΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/851802 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "849928",
+      "user_to": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "user_from": "ΑΝΤΩΝΙΑΔΗΣ ΠΡΟΚΟΠΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/849928 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "849620",
+      "user_to": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "user_from": "ΓΑΛΟΥΠΗ ΕΥΑΓΓΕΛΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/849620 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "849129",
+      "user_to": "ΚΑΛΦΑ ΓΕΩΡΓΙΑ",
+      "user_from": "ΚΑΛΦΑ ΓΕΩΡΓΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/849129 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "849128",
+      "user_to": "ΚΑΛΦΑ ΓΕΩΡΓΙΑ",
+      "user_from": "ΚΑΛΦΑ ΓΕΩΡΓΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/849128 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "849126",
+      "user_to": "ΧΑΡΙΤΟΥ ΔΗΜΗΤΡΑ",
+      "user_from": "ΧΑΡΙΤΟΥ ΔΗΜΗΤΡΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/849126 &Gamma;&Alpha;&Rho;&Omicron;&Upsi"
+    },
+    {
+      "pkm": "839060",
+      "user_to": "ΔΗΜΗΤΡΙΟΥ ΑΝΑΣΤΑΣΙΟΣ",
+      "user_from": "ΔΗΜΗΤΡΙΟΥ ΑΝΑΣΤΑΣΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/839060 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "808142",
+      "user_to": "ΚΡΙΚΕΛΗΣ ΒΑΣΙΛΕΙΟΣ",
+      "user_from": "ΚΡΙΚΕΛΗΣ ΒΑΣΙΛΕΙΟΣ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/808142 &Mu;&Omicron;&Upsilon;&Rho;&Alpha"
+    },
+    {
+      "pkm": "794309",
+      "user_to": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "user_from": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/794309 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "793893",
+      "user_to": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "user_from": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/793893 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "793918",
+      "user_to": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "user_from": "ΚΩΤΟΥΛΑ ΜΑΡΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/793918 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "793872",
+      "user_to": "ΓΚΑΓΚΑΝΑ ΓΕΩΡΓΙΑ",
+      "user_from": "ΓΚΑΓΚΑΝΑ ΓΕΩΡΓΙΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/793872 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "790370",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/790370 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "790369",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/790369 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "790342",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/790342 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "790339",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/790339 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "785563",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/785563 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "790334",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/790334 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    },
+    {
+      "pkm": "783640",
+      "user_to": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "user_from": "ΠΑΥΛΙΔΟΥ ΟΛΓΑ",
+      "are_same": true,
+      "description": "&Alpha;&#943;&tau;&eta;&mu;&alpha; 2025/783640 &Delta;&Rho;&Epsilon;&Nu;&Omicron"
+    }
+  ]
+}

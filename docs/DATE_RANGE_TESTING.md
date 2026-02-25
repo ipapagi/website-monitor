@@ -1,8 +1,53 @@
-# Date Range Testing Feature
+# Date Range Testing Feature & Weekly Report Date Handling
 
-## Δυνατότητα
+## 🔴 NEW: Date Normalization & Monday Auto-Adjustment
 
-Το σύστημα τώρα υποστηρίζει δοκιμή με συγκεκριμένη ημερομηνία range, ακριβώς όπως η δυνατότητα "Compare Applications Date Snapshot".
+### Date Normalization
+
+The weekly report generator now accepts flexible date formats without leading zeros:
+
+```bash
+# All these commands are equivalent:
+python src/weekly_report_generator.py --date=2026-02-09
+python src/weekly_report_generator.py --date=2026-2-9
+```
+
+**Tested Formats:**
+- `2026-02-09` (standard)
+- `2026-2-9` (no leading zeros)
+- `2026-12-5` (single digit month and day)
+- `2026-2-19` (single digit month, two-digit day)
+
+All normalize to: `YYYY-MM-DD` format
+
+### Monday Auto-Adjustment
+
+If the provided date is not a Monday, the system automatically uses the previous Monday:
+
+```bash
+# These all generate the report for the same Monday week:
+python src/weekly_report_generator.py --date=2026-02-16  # Monday - exact date
+python src/weekly_report_generator.py --date=2026-02-17  # Tuesday → Monday 2026-02-16
+python src/weekly_report_generator.py --date=2026-02-18  # Wednesday → Monday 2026-02-16
+python src/weekly_report_generator.py --date=2026-02-19  # Thursday → Monday 2026-02-16
+python src/weekly_report_generator.py --date=2026-02-20  # Friday → Monday 2026-02-16
+python src/weekly_report_generator.py --date=2026-02-21  # Saturday → Monday 2026-02-16
+python src/weekly_report_generator.py --date=2026-02-22  # Sunday → Monday 2026-02-16
+```
+
+User receives feedback:
+```
+ℹ️  Adjusting to previous Monday: 2026-02-16
+```
+
+**Test Results:**
+- ✅ All 7 weekdays correctly adjust to previous Monday
+- ✅ Normalized dates used in filenames
+- ✅ Week boundaries correctly calculated (Mon-Sun)
+
+---
+
+## Υπάρχουσα Δυνατότητα (Original - directory_emails.py):
 
 ## Χρήση
 

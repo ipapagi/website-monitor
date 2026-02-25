@@ -37,3 +37,14 @@ INCOMING_DEFAULT_PARAMS = {
     'start': 0,
     'limit': 200  # Βασικό όριο, θα γίνει pagination αν χρειαστεί
 }
+
+SETTLED_CASES_DEFAULT_PARAMS = {
+    'isPoll': False,
+    'queryId': 19,
+    'queryOwner': 2,
+    'isCase': False,
+    'stateId': 'welcomeGrid-45_dashboard0',
+    'page': 1,
+    'start': 0,
+    'limit': 200
+}

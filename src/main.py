@@ -213,6 +213,15 @@ def main():
             print(f"❌ Αποτυχία αποστολής emails ανά Διεύθυνση: {exc}")
             sys.exit(1)
 
+    # Always create monitor first (needed for settled cases lookup)
+    config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))
+    monitor = PKMMonitor(
+        base_url=config.get('base_url', 'https://shde.pkm.gov.gr'),
+        urls=config.get('urls', {}), api_params=config.get('api_params', {}),
+        login_params=config.get('login_params', {}), check_interval=config.get('check_interval', 300),
+        username=config.get('username'), password=config.get('password'),
+        session_cookies=config.get('session_cookies'))
+
     if args.export_incoming_xls or args.export_incoming_xls_all:
         # Δημιουργεί το XLS από το digest των νέων αιτήσεων
         try:
@@ -227,20 +236,12 @@ def main():
                 out_path = os.path.join(out_dir, "Διαδικασίες - εισερχόμενες αιτήσεις.xlsx")
             else:
                 out_path = os.path.join(out_dir, f"incoming_{scope}_{date_str}.xlsx")
-            build_requests_xls(digest, scope=scope, file_path=out_path)
+            build_requests_xls(digest, scope=scope, file_path=out_path, monitor_instance=monitor)
             print(f"✅ Δημιουργήθηκε XLS ({scope}): {out_path}")
             sys.exit(0)
         except Exception as exc:
             print(f"❌ Αποτυχία δημιουργίας XLS: {exc}")
             sys.exit(1)
-    
-    config = load_config(os.path.join(get_project_root(), 'config', 'config.yaml'))
-    monitor = PKMMonitor(
-        base_url=config.get('base_url', 'https://shde.pkm.gov.gr'),
-        urls=config.get('urls', {}), api_params=config.get('api_params', {}),
-        login_params=config.get('login_params', {}), check_interval=config.get('check_interval', 300),
-        username=config.get('username'), password=config.get('password'),
-        session_cookies=config.get('session_cookies'))
     
     if args.compare_date:
         snap = load_incoming_snapshot(args.compare_date)

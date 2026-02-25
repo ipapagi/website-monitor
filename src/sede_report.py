@@ -1,4 +1,5 @@
 """Ανάκτηση ημερήσιας αναφοράς ΣΗΔΕ χωρίς email ή terminal output"""
+import json
 import os
 import sys
 from datetime import datetime
@@ -48,7 +49,48 @@ def _fetch_procedures_silent(monitor: PKMMonitor):
     return all_procs, active_procs
 
 
-def _prepare_incoming_silent(monitor: PKMMonitor, config: dict):
+def _get_charge_enrichment_cache_path() -> str:
+    cache_dir = os.path.join(get_project_root(), "data")
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, "charges_enrichment_cache.json")
+
+
+def _load_charge_enrichment_cache(force_reload: bool = False) -> dict:
+    if force_reload:
+        return {}
+
+    path = _get_charge_enrichment_cache_path()
+    if not os.path.exists(path):
+        return {}
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        return payload.get("by_doc_id", {}) if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_charge_enrichment_cache(by_doc_id: dict) -> None:
+    path = _get_charge_enrichment_cache_path()
+    payload = {
+        "updated_at": datetime.now().isoformat(),
+        "count": len(by_doc_id),
+        "by_doc_id": by_doc_id,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def _prepare_incoming_silent(
+    monitor: PKMMonitor,
+    config: dict,
+    include_details_enrichment: bool = True,
+    include_charges_enrichment: bool = True,
+    include_routing_query3: bool = True,
+    enrich_missing_charge_details: bool = True,
+    force_reload: bool = False,
+):
     """Φέρνει εισερχόμενες αιτήσεις, συγκρίνει με προηγούμενο snapshot και αποθηκεύει το σημερινό (σιωπηλά)."""
     incoming_params = config.get("incoming_api_params", INCOMING_DEFAULT_PARAMS).copy()
     data = fetch_incoming_records(monitor, incoming_params)
@@ -112,9 +154,83 @@ def _prepare_incoming_silent(monitor: PKMMonitor, config: dict):
         prev_snap = {"records": []}
 
     # Εμπλουτισμός εγγραφών που λείπουν πληροφορίες (ίδια λογική με το --check-incoming-portal)
-    to_enrich = [r for r in records if not r.get('procedure') or not r.get('directory')]
-    if to_enrich:
-        enrich_record_details(monitor, to_enrich)
+    if include_details_enrichment:
+        to_enrich = [r for r in records if not r.get('procedure') or not r.get('directory')]
+        if to_enrich:
+            enrich_record_details(monitor, to_enrich)
+
+    # Ανάκτηση χρεώσεων και εμπλουτισμός records
+    if include_charges_enrichment:
+        try:
+            from charges import (
+                fetch_charges,
+                fetch_charges_combined,
+                add_charge_info_from_combined,
+            )
+
+            charges_cache = _load_charge_enrichment_cache(force_reload=force_reload)
+            cache_updated = False
+
+            if include_routing_query3:
+                _, charges_by_pkm = fetch_charges_combined(monitor)
+            else:
+                _, charges_by_pkm = fetch_charges(monitor)
+
+            # 1) Γρήγορο enrichment μόνο από διαθέσιμες χρεώσεις (χωρίς per-record API)
+            records = add_charge_info_from_combined(
+                records,
+                charges_by_pkm,
+                monitor=None,
+                enrich_missing=False,
+            )
+
+            # 2) Fallback από τοπικό cache για ήδη γνωστά doc_id
+            for rec in records:
+                charge = rec.get("_charge") or {}
+                if charge.get("charged"):
+                    continue
+                doc_id = str(rec.get("doc_id", "")).strip()
+                if not doc_id:
+                    continue
+                cached_charge = charges_cache.get(doc_id)
+                if cached_charge:
+                    rec["_charge"] = cached_charge
+
+            # 3) ΜΟΝΟ για νέα/άγνωστα records κάνουμε αργό per-record enrichment
+            unresolved = [
+                r for r in records
+                if not (r.get("_charge") or {}).get("charged") and str(r.get("doc_id", "")).strip()
+            ]
+
+            if enrich_missing_charge_details and unresolved:
+                unresolved_enriched = add_charge_info_from_combined(
+                    unresolved,
+                    {},
+                    monitor=monitor,
+                    enrich_missing=True,
+                )
+
+                charge_by_docid = {}
+                for rec in unresolved_enriched:
+                    doc_id = str(rec.get("doc_id", "")).strip()
+                    if not doc_id:
+                        continue
+                    charge = rec.get("_charge") or {}
+                    charge_by_docid[doc_id] = charge
+                    if charge.get("charged"):
+                        charges_cache[doc_id] = charge
+                        cache_updated = True
+
+                for rec in records:
+                    doc_id = str(rec.get("doc_id", "")).strip()
+                    if doc_id in charge_by_docid:
+                        rec["_charge"] = charge_by_docid[doc_id]
+
+            if cache_updated:
+                _save_charge_enrichment_cache(charges_cache)
+        except Exception:
+            # Συνεχίζουμε χωρίς χρεώσεις αν αποτύχει
+            pass
 
     changes = compare_incoming_records(records, prev_snap)
     real_new, test_new = classify_records(changes.get("new", []))
@@ -134,7 +250,11 @@ def _prepare_incoming_silent(monitor: PKMMonitor, config: dict):
     }
 
 
-def get_daily_sede_report(config_path: str | None = None) -> dict:
+def get_daily_sede_report(
+    config_path: str | None = None,
+    fast_mode: bool = False,
+    force_reload: bool = False,
+) -> dict:
     """
     Επιστρέφει την ημερήσια αναφορά ΣΗΔΕ με όλα τα δεδομένα.
     
@@ -194,7 +314,15 @@ def get_daily_sede_report(config_path: str | None = None) -> dict:
     active_changes = compare_with_baseline(all_procs, active_bl) if active_bl else None
     all_changes = compare_all_procedures_with_baseline(all_procs, all_bl) if all_bl else None
 
-    incoming_data = _prepare_incoming_silent(monitor, config)
+    incoming_data = _prepare_incoming_silent(
+        monitor,
+        config,
+        include_details_enrichment=not fast_mode,
+        include_charges_enrichment=True,
+        include_routing_query3=not fast_mode,
+        enrich_missing_charge_details=True,
+        force_reload=force_reload,
+    )
 
     # Έλεγχος αν είναι ιστορική σύγκριση
     force_date = os.getenv("INCOMING_FORCE_BASELINE_DATE")

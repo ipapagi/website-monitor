@@ -4,9 +4,13 @@ from typing import Dict, Any, Tuple
 from sede_report import get_daily_sede_report
 
 
-def load_digest() -> Dict[str, Any]:
-    """Loads the daily SEDE report digest (shared across API routes)."""
-    return get_daily_sede_report()
+def load_digest(reload: bool = False) -> Dict[str, Any]:
+    """Loads the daily SEDE report digest (shared across API routes).
+    
+    Args:
+        reload (bool): If True, ignores cache and performs full rebuild.
+    """
+    return get_daily_sede_report(fast_mode=True, force_reload=reload)
 
 
 def count_changes(changes: Dict[str, list] | None, key: str) -> int:

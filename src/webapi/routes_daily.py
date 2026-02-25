@@ -1,8 +1,8 @@
 """Daily and summary endpoints."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Annotated
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -19,10 +19,20 @@ class PeriodSummaryRequest(BaseModel):
 
 
 @router.get("/sede/daily", tags=["Πλήρης Αναφορά"])
-async def get_sede_daily():
-    """Επιστρέφει ημερήσια αναφορά φιλική για Teams/Power Automate."""
+async def get_sede_daily(
+    reload: Annotated[bool, Query(description="Force cache reload - αγνοεί cache και κάνει πλήρη rebuild")] = False
+):
+    """Επιστρέφει ημερήσια αναφορά φιλική για Teams/Power Automate.
+    
+    Query parameters:
+    - reload (bool): Αν True, αγνοεί cache και κάνει πλήρη rebuild της αναφοράς.
+    """
     try:
-        report = load_digest()
+        if reload:
+            from sede_report import get_daily_sede_report
+            report = get_daily_sede_report(fast_mode=True, force_reload=True)
+        else:
+            report = load_digest()
         incoming = report.get("incoming", {})
         incoming_changes = incoming.get("changes", {})
         active_changes = (report.get("active") or {}).get("changes") or {}

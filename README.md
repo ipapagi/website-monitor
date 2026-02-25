@@ -51,6 +51,31 @@ website-monitor/
 └── README.md
 ```
 
+## 📚 Τεκμηρίωση
+
+Λεπτομερής τεκμηρίωση για όλες τις λειτουργίες του project βρίσκεται στον φάκελο [`docs/`](docs/):
+
+### Core Documentation
+- **[DOCUMENTATION.md](docs/DOCUMENTATION.md)** - Πλήρης οδηγός χρήσης
+- **[API_COMPLETE_GUIDE.md](docs/API_COMPLETE_GUIDE.md)** - Πλήρης οδηγός API
+- **[API_QUICK_REFERENCE.md](docs/API_QUICK_REFERENCE.md)** - Γρήγορη αναφορά API
+
+### Advanced Features
+- **[FASTAPI_ENDPOINTS.md](docs/FASTAPI_ENDPOINTS.md)** - FastAPI REST API endpoints
+- **[DIRECTORIES_MANAGEMENT.md](docs/DIRECTORIES_MANAGEMENT.md)** - Διαχείριση διευθύνσεων
+- **[DIRECTORY_EMAILS.md](docs/DIRECTORY_EMAILS.md)** - Email notifications ανά διεύθυνση
+
+### Case Correlation & Tracking (NEW) ⭐
+- **[IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md)** - Summary of new features
+- **[CASE_CORRELATION_FEATURES.md](docs/CASE_CORRELATION_FEATURES.md)** - 3 correlation systems overview
+- **[OTS_INCOMING_ASSIGNMENTS.md](docs/OTS_INCOMING_ASSIGNMENTS.md)** - OTS assignment tracking guide
+- **[OTS_JWT_DETAIL_ENDPOINT_EXPLANATION.md](docs/OTS_JWT_DETAIL_ENDPOINT_EXPLANATION.md)** - Why detail endpoint fails (and why we don't need it)
+- **[OTS_FAQS.md](docs/OTS_FAQS.md)** - Frequently asked questions  
+- **[SETTLED_INCOMING_CORRELATION.md](docs/SETTLED_INCOMING_CORRELATION.md)** - Filter out settled cases
+
+### Testing & Utilities
+- **[TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Οδηγός testing
+
 ## Εγκατάσταση
 
 1. **Clone το repository:**

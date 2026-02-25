@@ -14,3 +14,6 @@ reportlab>=4.0.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 openpyxl>=3.1.0
+
+# For weekly report generation (DOCX & XLSX)
+python-docx>=0.8.11

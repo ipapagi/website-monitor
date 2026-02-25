@@ -181,6 +181,15 @@
             "args": ["--export-incoming-xls-all"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Weekly Report - Generate",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.weekly_report_generator",
+            "args": ["--date", "${input:reportDate}"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ],
     "inputs": [
@@ -189,6 +198,12 @@
             "type": "promptString",
             "description": "Ημερομηνία snapshot (YYYY-MM-DD)",
             "default": "2025-12-04"
+        },
+        {
+            "id": "reportDate",
+            "type": "promptString",
+            "description": "Ημερομηνία αναφοράς για εβδομαδιαία έκθεση (YYYY-MM-DD)",
+            "default": "2026-02-02"
         }
     ]
 }

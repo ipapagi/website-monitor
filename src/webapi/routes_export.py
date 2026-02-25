@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from services.report_service import load_digest
 from xls_export import build_requests_xls
+from .state import get_monitor
 
 router = APIRouter()
 
@@ -49,7 +50,10 @@ async def export_xls(scope: str = Query(default="new", pattern="^(new|all)$", de
         incoming = report.get("incoming", {})
         date_str = incoming.get("date") or report.get("generated_at", "")[:10]
 
-        xls_bytes = build_requests_xls(report, scope=scope)
+        # Get monitor instance for settled cases lookup
+        monitor = get_monitor()
+        
+        xls_bytes = build_requests_xls(report, scope=scope, monitor_instance=monitor)
         filename = "Διαδικασίες - εισερχόμενες αιτήσεις.xlsx" if scope == "all" else f"incoming_{scope}_{date_str}.xlsx"
         # RFC 5987 encoding for non-ASCII filenames
         filename_encoded = quote(filename, safe="")
