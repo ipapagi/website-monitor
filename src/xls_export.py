@@ -173,7 +173,7 @@ def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = No
     ws.freeze_panes = "A3"
 
 
-def print_open_tests_terminal(digest: Dict, monitor_instance=None) -> None:
+def print_open_apps_terminal(digest: Dict, monitor_instance=None) -> None:
     """Εκτυπώνει στο terminal αναφορά με όλες τις ΑΝΟΙΚΤΕΣ δοκιμαστικές αιτήσεις.
     
     Ανοικτή = δοκιμαστική (per classify_records) ΚΑΙ ΔΕΝ βρίσκεται στις διεκπεραιωμένες.
@@ -236,15 +236,16 @@ def print_open_tests_terminal(digest: Dict, monitor_instance=None) -> None:
         if not rows:
             print("   (καμία)")
             return
-        print(f"  {'Α/Α':<4} {'Case ID':<12} {'Ημ/νία Υποβ.':<14} {'Λόγος':<18} {'Διεύθυνση':<45} {'Αιτών / Party'}")
-        print("  " + "-" * 120)
+        print(f"  {'Α/Α':<4} {'Case ID':<12} {'Ημ/νία Υποβ.':<14} {'Λόγος':<18} {'Διεύθυνση':<45} {'Αιτών / Party':<50} {'Ημ/νία Κλεισίματος'}")
+        print("  " + "-" * 140)
         for idx, r in enumerate(rows, start=1):
             cid   = str(r.get("case_id", ""))
             date_ = _fmt_date(r.get("submitted_at", ""))
             reason = reason_labels.get(r.get("test_reason", ""), r.get("test_reason", ""))
             direc  = (r.get("directory") or "")[:44]
             party  = (r.get("party") or "")[:50]
-            print(f"  {idx:<4} {cid:<12} {date_:<14} {reason:<18} {direc:<45} {party}")
+            close_date = ""  # Κενό προς το παρόν - θα συμπληρωθεί όταν κλείσει η αίτηση
+            print(f"  {idx:<4} {cid:<12} {date_:<14} {reason:<18} {direc:<45} {party:<50} {close_date}")
 
     total = len(open_tests)
     total_test = len(test_rows)
@@ -264,6 +265,136 @@ def print_open_tests_terminal(digest: Dict, monitor_instance=None) -> None:
     _print_group(manual,     "Χωρίς ανάθεση (charged=False — απαιτείται χειροκίνητη διαχείριση)", "⚠️")
 
     print("\n" + "="*80 + "\n")
+
+
+def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | None = None) -> bytes | str:
+    """Build an XLSX with two sheets for open test requests:
+    - Sheet 1: Ανατεθειμένες (charged=True)
+    - Sheet 2: Χωρίς Ανάθεση (charged=False)
+    
+    Columns: Α/Α, Case ID, Ημ/νία Υποβ., Λόγος, Διεύθυνση, Αιτών/Party, Ανάθεση σε, Ημ/νία Κλεισίματος
+    """
+    if not Workbook:
+        raise RuntimeError("openpyxl not installed")
+
+    # Reuse detection logic from print_open_tests_terminal()
+    settled_by_case_id = _load_settled_cases(monitor_instance=monitor_instance)
+    
+    incoming = digest.get("incoming", {})
+    try:
+        from test_users import classify_records
+        _real, test_rows = classify_records(incoming.get("records", []) or [])
+    except Exception as exc:
+        raise RuntimeError(f"Αποτυχία classify_records: {exc}")
+
+    # Κράτα μόνο ανοικτές (χωρίς ημερομηνία διεκπεραίωσης)
+    open_tests = []
+    for rec in test_rows:
+        case_id = str(rec.get("case_id", "")).strip()
+        submission_year = str(rec.get("submission_year", "")).strip()
+        settled_date = ""
+
+        if submission_year and case_id:
+            info = settled_by_case_id.get(f"{submission_year}/{case_id}", {})
+            settled_date = info.get("settled_date", "")
+
+        # Fallback: protocol_number
+        if not settled_date:
+            proto = str(rec.get("protocol_number", "")).strip()
+            if proto:
+                settled_date = settled_by_case_id.get(proto, {}).get("settled_date", "")
+
+        if not settled_date:
+            open_tests.append(rec)
+
+    # Διαχωρισμός σε charged / uncharged
+    charged = [r for r in open_tests if r.get("_charge", {}).get("charged")]
+    uncharged = [r for r in open_tests if not r.get("_charge", {}).get("charged")]
+
+    reason_labels = {
+        'internal_user': 'Εσωτ. χρήστης',
+        'test_user':     'Δοκ. χρήστης',
+        'test_company':  'Δοκ. εταιρεία',
+    }
+
+    def _fmt_date(s):
+        if not s:
+            return ''
+        try:
+            dt = datetime.fromisoformat(str(s).replace(" ", "T"))
+            return dt.strftime("%d-%m-%Y")
+        except Exception:
+            return str(s)[:10]
+
+    def _write_open_tests_sheet(ws, rows: List[Dict], title: str):
+        """Write sheet for open test requests."""
+        headers = ["Α/Α", "Case ID", "Ημ/νία Υποβ.", "Λόγος", "Διεύθυνση", "Αιτών / Party", "Ανάθεση σε", "Ημ/νία Κλεισίματος"]
+        
+        header_font = Font(bold=True) if Font else None
+        header_fill = PatternFill("solid", fgColor="FFF2CC") if PatternFill else None
+        
+        # Title row (row 1)
+        title_cell = ws.cell(row=1, column=1, value=title)
+        if header_font:
+            title_cell.font = header_font
+        
+        # Header row (row 2)
+        for c, h in enumerate(headers, start=1):
+            cell = ws.cell(row=2, column=c, value=h)
+            if header_font:
+                cell.font = header_font
+            if header_fill:
+                cell.fill = header_fill
+        
+        # Data: 8 columns
+        col_vals = [[], [], [], [], [], [], [], []]
+        
+        for idx, rec in enumerate(rows, start=1):
+            col_vals[0].append(idx)  # Α/Α
+            col_vals[1].append(str(rec.get("case_id", "")))
+            col_vals[2].append(_fmt_date(rec.get("submitted_at", "")))
+            col_vals[3].append(reason_labels.get(rec.get("test_reason", ""), rec.get("test_reason", "")))
+            col_vals[4].append(rec.get("directory", ""))
+            col_vals[5].append(rec.get("party", ""))
+            
+            # Ανάθεση σε
+            charge_info = rec.get("_charge", {})
+            employee = charge_info.get("employee", "") if charge_info.get("charged") else ""
+            col_vals[6].append(employee)
+            
+            # Ημ/νία Κλεισίματος (κενό προς το παρόν)
+            col_vals[7].append("")
+        
+        # Write data starting from row 3
+        for row_idx, *_ in enumerate(col_vals[0], start=3):
+            for col_idx in range(8):
+                ws.cell(row=row_idx, column=col_idx + 1, value=col_vals[col_idx][row_idx - 3])
+        
+        # Column widths: Α/Α(6), CaseID(12), Date(14), Reason(18), Directory(50), Party(60), Assignment(40), CloseDate(18)
+        col_widths = [6, 12, 14, 18, 50, 60, 40, 18]
+        for i, width in enumerate(col_widths, start=1):
+            ws.column_dimensions[chr(64 + i)].width = width
+    
+    # Build workbook
+    wb = Workbook()
+    
+    # Sheet 1: Ανατεθειμένες
+    ws1 = wb.active
+    ws1.title = "Ανατεθειμένες"
+    _write_open_tests_sheet(ws1, charged, "✅ Ανατεθειμένες δοκιμαστικές (charged=True)")
+    
+    # Sheet 2: Χωρίς Ανάθεση
+    ws2 = wb.create_sheet("Χωρίς Ανάθεση")
+    _write_open_tests_sheet(ws2, uncharged, "⚠️ Χωρίς ανάθεση (charged=False)")
+    
+    # Return bytes or save to file
+    if file_path:
+        wb.save(file_path)
+        return file_path
+    
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 
 def build_requests_xls(digest: Dict, scope: str = "new", file_path: str | None = None, monitor_instance = None) -> bytes | str:

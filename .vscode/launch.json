@@ -192,6 +192,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Monitor - Export Open Test Applications to XLSX",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["--export-open-apps-xls"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Weekly Report - Generate",
             "type": "debugpy",
             "request": "launch",

@@ -60,6 +60,8 @@ def parse_arguments():
                         help='Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές) του snapshot')
     parser.add_argument('--report-open-apps', action='store_true',
                         help='Εμφανίζει στο terminal αναφορά ανοικτών δοκιμαστικών αιτήσεων (auto-close vs manual)')
+    parser.add_argument('--export-open-apps-xls', action='store_true',
+                        help='Εξάγει Excel (.xlsx) με ΑΝΟΙΚΤΕΣ δοκιμαστικές αιτήσεις (υποψήφιες για κλείσιμο)')
     parser.add_argument('--send-directory-emails', action='store_true',
                        help='Δημιουργεί και στέλνει emails ανά Διεύθυνση με attachments για νέες αιτήσεις')
     parser.add_argument('--send-directory-emails-to-chat', action='store_true',
@@ -227,13 +229,33 @@ def main():
     if args.report_open_apps:
         try:
             from services.report_service import load_digest
-            from xls_export import print_open_tests_terminal
+            from xls_export import print_open_apps_terminal
             digest = load_digest()
-            print_open_tests_terminal(digest, monitor_instance=monitor)
+            print_open_apps_terminal(digest, monitor_instance=monitor)
             sys.exit(0)
         except Exception as exc:
             import traceback; traceback.print_exc()
             print(f"❌ Αποτυχία αναφοράς ανοικτών δοκιμαστικών: {exc}")
+            sys.exit(1)
+
+    if args.export_open_apps_xls:
+        try:
+            from services.report_service import load_digest
+            from xls_export import build_open_apps_xls
+            
+            digest = load_digest()
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(get_project_root(), 'data', 'outputs', f'Ανοικτές_δοκιμαστικές_{timestamp}.xlsx')
+            
+            print(f"📊 Δημιουργία Excel με ανοικτές δοκιμαστικές αιτήσεις...")
+            build_open_apps_xls(digest, monitor_instance=monitor, file_path=output_path)
+            print(f"✅ Δημιουργήθηκε: {output_path}")
+            sys.exit(0)
+        except Exception as exc:
+            import traceback; traceback.print_exc()
+            print(f"❌ Αποτυχία εξαγωγής Excel: {exc}")
             sys.exit(1)
 
     if args.export_incoming_xls or args.export_incoming_xls_all:
