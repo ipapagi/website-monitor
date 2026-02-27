@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import re
 from datetime import datetime
 from typing import Dict, List
 
@@ -46,6 +47,63 @@ def _format_protocol(rec: Dict) -> str:
     if protocol and date_str:
         return f"{protocol}/{date_str}"
     return case_id or protocol or date_str or ""
+
+
+def _extract_related_case_key(related_case: str) -> str:
+    """Extract 'YYYY/CASE_ID' from a related_case string.
+
+    Example: 'Αίτημα 2025/717316 ΜΟΥΡΑΤΙΔΟΥ-128272645' → '2025/717316'
+    """
+    if not related_case:
+        return ""
+    match = re.search(r'(\d{4}/\d+)', related_case)
+    return match.group(1) if match else ""
+
+
+def _resolve_settled_info(rec: Dict, settled_by_case_id: Dict) -> Dict:
+    """Resolve settled info for a record with 3-step priority:
+
+    1. submission_year/case_id  (direct match)
+    2. protocol_number          (fallback)
+    3. supplement parent        (if document_category contains Συμπληρωματικά)
+
+    Returns dict with 'settled_date' and 'assigned_employee' keys
+    (empty strings if not settled).
+    """
+    result = {"settled_date": "", "assigned_employee": ""}
+
+    case_id = str(rec.get("case_id", "")).strip()
+    submission_year = str(rec.get("submission_year", "")).strip()
+
+    # Step 1: submission_year/case_id
+    if submission_year and case_id:
+        lookup_key = f"{submission_year}/{case_id}"
+        if lookup_key in settled_by_case_id:
+            info = settled_by_case_id[lookup_key]
+            result["settled_date"] = info.get("settled_date", "")
+            result["assigned_employee"] = info.get("assigned_employee", "")
+            return result
+
+    # Step 2: protocol_number
+    protocol_num = str(rec.get("protocol_number", "")).strip()
+    if protocol_num and protocol_num in settled_by_case_id:
+        info = settled_by_case_id[protocol_num]
+        result["settled_date"] = info.get("settled_date", "")
+        result["assigned_employee"] = info.get("assigned_employee", "")
+        return result
+
+    # Step 3: supplement parent
+    doc_category = str(rec.get("document_category", ""))
+    if "Συμπληρωματι" in doc_category:
+        related_case = (rec.get("related_case") or "").strip()
+        parent_key = _extract_related_case_key(related_case)
+        if parent_key and parent_key in settled_by_case_id:
+            info = settled_by_case_id[parent_key]
+            result["settled_date"] = info.get("settled_date", "")
+            result["assigned_employee"] = info.get("assigned_employee", "")
+            return result
+
+    return result
 
 
 def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = None):
@@ -105,19 +163,10 @@ def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = No
         charge_info = rec.get("_charge", {})
         employee = charge_info.get("employee", "") if charge_info.get("charged") else ""
         
-        # Check if case is in settled cases (queryId=19) - use its assignment
-        case_id = str(rec.get("case_id", "")).strip()
-        submission_year = str(rec.get("submission_year", "")).strip()
-        assigned_employee = ""
-        settled_date = ""
-        
-        # Try to match using YEAR/CASE_ID format (matches W001_P_FLD2 from settled cases)
-        if submission_year and case_id:
-            lookup_key = f"{submission_year}/{case_id}"
-            if lookup_key in settled_by_case_id:
-                settled_info = settled_by_case_id[lookup_key]
-                settled_date = settled_info.get("settled_date", "")
-                assigned_employee = settled_info.get("assigned_employee", "")
+        # Resolve settled info (direct match, protocol fallback, supplement parent)
+        settled_info = _resolve_settled_info(rec, settled_by_case_id)
+        settled_date = settled_info["settled_date"]
+        assigned_employee = settled_info["assigned_employee"]
         
         # Priority: Use assignment from settled cases (W001_P_FLD10), else use incoming charge
         if assigned_employee:
@@ -134,26 +183,14 @@ def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = No
         doc_type = rec.get("document_category", "")
         related_case = (rec.get("related_case") or "").strip()
         if "Συμπληρωματι" in str(doc_type) and related_case:
-            # Extract year/number from related_case
-            # Format could be: "2026/117648" or "Αίτημα 2026/117648 NAME-123456"
-            # We need to extract just "2026/117648"
-            import re
-            match = re.search(r'(\d{4}/\d+)', related_case)
-            if match:
-                case_number = match.group(1)
+            case_number = _extract_related_case_key(related_case)
+            if case_number:
                 doc_type = f"{doc_type}: {case_number}"
         
         col_vals[3].append(doc_type)
         col_vals[4].append(rec.get("procedure", ""))
         col_vals[5].append(rec.get("party", ""))
         col_vals[6].append(employee)  # Assignment from settled cases or current charge
-        
-        # Fallback: try protocol_number if available
-        if not settled_date:
-            protocol_num = str(rec.get("protocol_number", "")).strip()
-            if protocol_num and protocol_num in settled_by_case_id:
-                settled_date = settled_by_case_id[protocol_num].get("settled_date", "")
-        
         col_vals[7].append(settled_date)
 
     # Column widths
@@ -195,21 +232,8 @@ def print_open_apps_terminal(digest: Dict, monitor_instance=None) -> None:
     # Κράτα μόνο ανοικτές (χωρίς ημερομηνία διεκπεραίωσης)
     open_tests = []
     for rec in test_rows:
-        case_id = str(rec.get("case_id", "")).strip()
-        submission_year = str(rec.get("submission_year", "")).strip()
-        settled_date = ""
-
-        if submission_year and case_id:
-            info = settled_by_case_id.get(f"{submission_year}/{case_id}", {})
-            settled_date = info.get("settled_date", "")
-
-        # Fallback: protocol_number
-        if not settled_date:
-            proto = str(rec.get("protocol_number", "")).strip()
-            if proto:
-                settled_date = settled_by_case_id.get(proto, {}).get("settled_date", "")
-
-        if not settled_date:
+        settled_info = _resolve_settled_info(rec, settled_by_case_id)
+        if not settled_info["settled_date"]:
             open_tests.append(rec)
 
     # Διαχωρισμός σε auto-close / manual
@@ -290,21 +314,8 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
     # Κράτα μόνο ανοικτές (χωρίς ημερομηνία διεκπεραίωσης)
     open_tests = []
     for rec in test_rows:
-        case_id = str(rec.get("case_id", "")).strip()
-        submission_year = str(rec.get("submission_year", "")).strip()
-        settled_date = ""
-
-        if submission_year and case_id:
-            info = settled_by_case_id.get(f"{submission_year}/{case_id}", {})
-            settled_date = info.get("settled_date", "")
-
-        # Fallback: protocol_number
-        if not settled_date:
-            proto = str(rec.get("protocol_number", "")).strip()
-            if proto:
-                settled_date = settled_by_case_id.get(proto, {}).get("settled_date", "")
-
-        if not settled_date:
+        settled_info = _resolve_settled_info(rec, settled_by_case_id)
+        if not settled_info["settled_date"]:
             open_tests.append(rec)
 
     # Διαχωρισμός σε charged / uncharged
