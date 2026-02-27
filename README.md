@@ -179,9 +179,16 @@ python src/main.py --send-directory-emails                # Emails ανά Διε
 python src/main.py --send-directory-emails-to-chat        # Emails ανά Διεύθυνση + ανακοίνωση στο chat
 python src/main.py --export-incoming-xls                  # Εξαγωγή XLS (2 φύλλα: Δοκιμαστικές, Πραγματικές)
 python src/main.py --export-incoming-xls-all             # Εξαγωγή XLS με ΟΛΕΣ τις αιτήσεις (δοκιμαστικές & πραγματικές)
+python src/main.py --report-open-apps                    # Αναφορά ανοικτών δοκιμαστικών αιτήσεων στο terminal
+python src/main.py --export-open-apps-xls                # Εξαγωγή XLS μόνο με ανοικτές δοκιμαστικές αιτήσεις
 ```
 Οι δύο εντολές export ενημερώνουν το αρχείο καταγραφής `.xlsx` (φάκελος `data/`) με τις νέες ή όλες τις αιτήσεις της ημέρας.
 Οι δύο εντολές `--send-directory-emails*` δημιουργούν και αποστέλνουν emails ανά Διεύθυνση με όλα τα attachments κάθε αιτούντα σε συμπιεσμένο αρχείο zip.
+
+Για τον χαρακτηρισμό «ανοικτή/διεκπεραιωμένη» εφαρμόζεται και ο κανόνας για συμπληρωματικά:
+- Αν μια εγγραφή έχει τύπο `Συμπληρωματικά Αιτήματος`, γίνεται εξαγωγή parent case (`YYYY/CASE_ID`) από το `related_case`
+- Αν το parent case υπάρχει στις διεκπεραιωμένες (queryId=19), τότε το συμπληρωματικό θεωρείται επίσης διεκπεραιωμένο
+- Άρα δεν εμφανίζεται στις λίστες/exports «open apps»
 
 #### Ιστορική σύγκριση ημερήσιας αναφοράς
 - Ορίζεις στο `.env` το `INCOMING_FORCE_BASELINE_DATE=YYYY-MM-DD`
@@ -233,6 +240,8 @@ python src/main.py                      # Ξεκινά continuous monitoring
 | `--send-directory-emails-to-chat` | Emails ανά Διεύθυνση + αποστολή σύνοψης στο chat υποστήριξης |
 | `--export-incoming-xls` | Εξάγει Excel (.xlsx) με δύο φύλλα: "Δοκιμαστικές" και "Πραγματικές" νέες αιτήσεις |
 | `--export-incoming-xls-all` | Εξάγει Excel (.xlsx) με ΟΛΕΣ τις αιτήσεις του snapshot (δοκιμαστικές & πραγματικές) |
+| `--report-open-apps` | Εμφανίζει αναφορά ανοικτών δοκιμαστικών αιτήσεων στο terminal |
+| `--export-open-apps-xls` | Εξάγει Excel (.xlsx) μόνο με ΑΝΟΙΚΤΕΣ δοκιμαστικές αιτήσεις |
 | `--no-monitor` | Δεν ξεκινά continuous monitoring |
 
 ## VS Code Launch Configurations

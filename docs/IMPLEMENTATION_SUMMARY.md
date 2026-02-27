@@ -256,9 +256,14 @@ For records without direct charge matches, automated API enrichment:
 - Extraction: Regex from W007_P_FLD7 extended text field
 - Result: 5 supplements correctly labeled
 
+**NEW (Open Apps Filtering):** Supplement inherits settled status from parent case
+- Για records με `document_category = Συμπληρωματικά Αιτήματος`, γίνεται extract του parent key (`YYYY/CASE_ID`) από `related_case`
+- Το parent key ελέγχεται στο settled index (queryId=19) μαζί με τα direct keys (`submission_year/case_id`) και `protocol_number`
+- Αν βρεθεί settled parent, το supplement θεωρείται διεκπεραιωμένο και εξαιρείται από open apps report/export
+
 **Files:**
 - `src/incoming.py` (Lines 135-148): Extract `related_case` field
-- `src/xls_export.py` (Lines 137-148): Format in ΤΥΠΟΣ column
+- `src/xls_export.py`: Format in ΤΥΠΟΣ column + unified settled resolution (`_resolve_settled_info`)
 
 ---
 

@@ -95,6 +95,16 @@ records = add_charge_info(
 Διεκπεραιωμένες (W001_P_FLD2):      "2026/105673"
 ```
 
+### Κανόνας για Συμπληρωματικά Αιτήματος (NEW)
+
+Για records με τύπο `Συμπληρωματικά Αιτήματος`:
+
+1. Γίνεται extract του parent case key (`YYYY/CASE_ID`) από το πεδίο `related_case` (W007_P_FLD7 extended text)
+2. Γίνεται lookup του parent key στο settled index (`W001_P_FLD2` από queryId=19)
+3. Αν το parent case είναι διεκπεραιωμένο, τότε και το supplement record θεωρείται διεκπεραιωμένο
+
+Με αυτόν τον κανόνα, τα supplement records που δείχνουν σε ήδη διεκπεραιωμένη υπόθεση **εξαιρούνται** από τα open apps reports/exports.
+
 ## Λειτουργίες API
 
 ### 1. `correlate_incoming_with_settled()`
