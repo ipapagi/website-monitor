@@ -106,6 +106,23 @@ def _resolve_settled_info(rec: Dict, settled_by_case_id: Dict) -> Dict:
     return result
 
 
+def _get_request_origin_label(rec: Dict) -> str:
+    """Return request origin label for open-apps lists.
+
+    - "Αίτηση" for normal requests
+    - "Συμπληρωματικά στην YYYY/NNNNN" for supplement requests with parent key
+    - "Συμπληρωματικά" for supplement requests without parsable parent key
+    """
+    doc_category = str(rec.get("document_category", ""))
+    if "Συμπληρωματι" in doc_category:
+        related_case = (rec.get("related_case") or "").strip()
+        parent_key = _extract_related_case_key(related_case)
+        if parent_key:
+            return f"Συμπληρωματικά στην {parent_key}"
+        return "Συμπληρωματικά"
+    return "Αίτηση"
+
+
 def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = None):
     """Write sheet with incoming requests.
     
@@ -260,16 +277,17 @@ def print_open_apps_terminal(digest: Dict, monitor_instance=None) -> None:
         if not rows:
             print("   (καμία)")
             return
-        print(f"  {'Α/Α':<4} {'Case ID':<12} {'Ημ/νία Υποβ.':<14} {'Λόγος':<18} {'Διεύθυνση':<45} {'Αιτών / Party':<50} {'Ημ/νία Κλεισίματος'}")
-        print("  " + "-" * 140)
+        print(f"  {'Α/Α':<4} {'Case ID':<12} {'Ημ/νία Υποβ.':<14} {'Λόγος':<18} {'Είδος':<32} {'Διεύθυνση':<42} {'Αιτών / Party':<42} {'Ημ/νία Κλεισίματος'}")
+        print("  " + "-" * 190)
         for idx, r in enumerate(rows, start=1):
             cid   = str(r.get("case_id", ""))
             date_ = _fmt_date(r.get("submitted_at", ""))
             reason = reason_labels.get(r.get("test_reason", ""), r.get("test_reason", ""))
-            direc  = (r.get("directory") or "")[:44]
-            party  = (r.get("party") or "")[:50]
+            origin = _get_request_origin_label(r)[:31]
+            direc  = (r.get("directory") or "")[:41]
+            party  = (r.get("party") or "")[:42]
             close_date = ""  # Κενό προς το παρόν - θα συμπληρωθεί όταν κλείσει η αίτηση
-            print(f"  {idx:<4} {cid:<12} {date_:<14} {reason:<18} {direc:<45} {party:<50} {close_date}")
+            print(f"  {idx:<4} {cid:<12} {date_:<14} {reason:<18} {origin:<32} {direc:<42} {party:<42} {close_date}")
 
     total = len(open_tests)
     total_test = len(test_rows)
@@ -339,7 +357,7 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
 
     def _write_open_tests_sheet(ws, rows: List[Dict], title: str):
         """Write sheet for open test requests."""
-        headers = ["Α/Α", "Case ID", "Ημ/νία Υποβ.", "Λόγος", "Διεύθυνση", "Αιτών / Party", "Ανάθεση σε", "Ημ/νία Κλεισίματος"]
+        headers = ["Α/Α", "Case ID", "Ημ/νία Υποβ.", "Λόγος", "Είδος", "Διεύθυνση", "Αιτών / Party", "Ανάθεση σε", "Ημ/νία Κλεισίματος"]
         
         header_font = Font(bold=True) if Font else None
         header_fill = PatternFill("solid", fgColor="FFF2CC") if PatternFill else None
@@ -357,32 +375,33 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
             if header_fill:
                 cell.fill = header_fill
         
-        # Data: 8 columns
-        col_vals = [[], [], [], [], [], [], [], []]
+        # Data: 9 columns
+        col_vals = [[], [], [], [], [], [], [], [], []]
         
         for idx, rec in enumerate(rows, start=1):
             col_vals[0].append(idx)  # Α/Α
             col_vals[1].append(str(rec.get("case_id", "")))
             col_vals[2].append(_fmt_date(rec.get("submitted_at", "")))
             col_vals[3].append(reason_labels.get(rec.get("test_reason", ""), rec.get("test_reason", "")))
-            col_vals[4].append(rec.get("directory", ""))
-            col_vals[5].append(rec.get("party", ""))
+            col_vals[4].append(_get_request_origin_label(rec))
+            col_vals[5].append(rec.get("directory", ""))
+            col_vals[6].append(rec.get("party", ""))
             
             # Ανάθεση σε
             charge_info = rec.get("_charge", {})
             employee = charge_info.get("employee", "") if charge_info.get("charged") else ""
-            col_vals[6].append(employee)
+            col_vals[7].append(employee)
             
             # Ημ/νία Κλεισίματος (κενό προς το παρόν)
-            col_vals[7].append("")
+            col_vals[8].append("")
         
         # Write data starting from row 3
         for row_idx, *_ in enumerate(col_vals[0], start=3):
-            for col_idx in range(8):
+            for col_idx in range(9):
                 ws.cell(row=row_idx, column=col_idx + 1, value=col_vals[col_idx][row_idx - 3])
         
-        # Column widths: Α/Α(6), CaseID(12), Date(14), Reason(18), Directory(50), Party(60), Assignment(40), CloseDate(18)
-        col_widths = [6, 12, 14, 18, 50, 60, 40, 18]
+        # Column widths: Α/Α(6), CaseID(12), Date(14), Reason(18), Type(34), Directory(50), Party(60), Assignment(40), CloseDate(18)
+        col_widths = [6, 12, 14, 18, 34, 50, 60, 40, 18]
         for i, width in enumerate(col_widths, start=1):
             ws.column_dimensions[chr(64 + i)].width = width
     
