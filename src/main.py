@@ -245,9 +245,8 @@ def main():
             
             digest = load_digest()
             
-            # Generate filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = os.path.join(get_project_root(), 'data', 'outputs', f'Ανοικτές_δοκιμαστικές_{timestamp}.xlsx')
+            # Stable tracker file: keeps history and marks close dates
+            output_path = os.path.join(get_project_root(), 'data', 'outputs', 'Ανοικτές_δοκιμαστικές.xlsx')
             
             print(f"📊 Δημιουργία Excel με ανοικτές δοκιμαστικές αιτήσεις...")
             build_open_apps_xls(digest, monitor_instance=monitor, file_path=output_path)

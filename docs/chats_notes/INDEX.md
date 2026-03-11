@@ -1,11 +1,28 @@
 # Chat Sessions Index
 ## Website-Monitor Project
 
-**Index Last Updated:** 2026-02-17
+**Index Last Updated:** 2026-03-11
 
 ---
 
 ## Active Sessions
+
+### 🔵 [2026-03-11] Open Test Requests Tracker XLSX
+**File:** `2026-03-11_open_test_requests_tracker_xlsx.md`  
+**Status:** Completed  
+**Topics:**
+- Persistent XLS tracker για ανοικτές δοκιμαστικές
+- Μη διαγραφή διεκπεραιωμένων rows
+- Συμπλήρωση `Ημ/νία Κλεισίματος`
+- Σταθερό export αρχείο αντί για timestamped
+
+**Key Changes:**
+- `src/xls_export.py` - merge current open + existing rows, close-date update
+- `src/main.py` - fixed output path `data/outputs/Ανοικτές_δοκιμαστικές.xlsx`
+
+**Discoveries:**
+- Με timestamped output δεν μπορεί να διατηρηθεί ιστορικό εκκρεμών/διεκπεραιωμένων.
+- Η ενιαία αποθήκευση σε σταθερό αρχείο επιτρέπει append νέων και marking κλεισίματος.
 
 ### 🔵 [2026-02-17] Case Inquiry & Charge Investigation
 **File:** `2026-02-17_case_inquiry_and_charge_investigation.md`  
@@ -51,6 +68,7 @@
 
 #### 🐛 Debugging & Fixes
 - [2026-02-17] Case Inquiry & Charge Investigation (HTML decoding issue)
+- [2026-03-11] Open Test Requests Tracker XLSX (persistent close-date tracking)
 
 ---
 
@@ -69,7 +87,8 @@
 
 | File | Session | Change |
 |------|---------|--------|
-| N/A | 2026-02-17 | No core files modified in this session |
+| `src/xls_export.py` | 2026-03-11 | Persistent open-test tracker and close-date updates |
+| `src/main.py` | 2026-03-11 | Stable output filename for open-test tracker export |
 
 ---
 

@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import io
+import os
 import re
 from datetime import datetime
 from typing import Dict, List
 
 try:
-    from openpyxl import Workbook
+    from openpyxl import Workbook, load_workbook
     from openpyxl.styles import Font, PatternFill
 except ImportError:  # pragma: no cover
     Workbook = None
+    load_workbook = None
     Font = None
     PatternFill = None
 
@@ -123,7 +125,7 @@ def _get_request_origin_label(rec: Dict) -> str:
     return "Αίτηση"
 
 
-def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = None):
+def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict | None = None):
     """Write sheet with incoming requests.
     
     Columns: Α/Α, Δ/νση, Αρ. Πρωτοκόλλου, ΤΥΠΟΣ, Διαδικασία, Συναλλασσόμενος, Ανάθεση σε, Διεκπεραιωμένη
@@ -136,7 +138,7 @@ def _write_sheet(ws, rows: List[Dict], title: str, settled_by_case_id: Dict = No
     header_font = Font(bold=True) if Font else None
     header_fill = PatternFill("solid", fgColor="DAE8FC") if PatternFill else None
 
-    def _parse_date(s: str):
+    def _parse_date(s: str | None):
         if not s:
             return None
         s = str(s).strip()
@@ -355,6 +357,83 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
         except Exception:
             return str(s)[:10]
 
+    def _parse_ddmmyyyy(s):
+        if not s:
+            return None
+        try:
+            return datetime.strptime(str(s).strip()[:10], "%d-%m-%Y")
+        except Exception:
+            return None
+
+    def _current_rows_by_key(rows: List[Dict], group: str) -> Dict[str, Dict]:
+        out = {}
+        for rec in rows:
+            key = str(rec.get("case_id", "")).strip()
+            if not key:
+                continue
+            charge_info = rec.get("_charge", {})
+            employee = charge_info.get("employee", "") if charge_info.get("charged") else ""
+            out[key] = {
+                "key": key,
+                "submitted_at": _fmt_date(rec.get("submitted_at", "")),
+                "reason": reason_labels.get(rec.get("test_reason", ""), rec.get("test_reason", "")),
+                "origin": _get_request_origin_label(rec),
+                "directory": rec.get("directory", ""),
+                "party": rec.get("party", ""),
+                "employee": employee,
+                "close_date": "",
+                "group": group,
+            }
+        return out
+
+    def _load_existing_rows(path: str) -> Dict[str, Dict]:
+        if load_workbook is None or not os.path.exists(path):
+            return {}
+
+        wb_existing = load_workbook(path)
+        group_by_sheet = {
+            "Ανατεθειμένες": "charged",
+            "Χωρίς Ανάθεση": "uncharged",
+        }
+        loaded = {}
+
+        for sheet_name, group in group_by_sheet.items():
+            if sheet_name not in wb_existing.sheetnames:
+                continue
+            ws = wb_existing[sheet_name]
+            for row in ws.iter_rows(min_row=3, values_only=True):
+                key = str(row[1] or "").strip() if len(row) > 1 else ""
+                if not key:
+                    continue
+                loaded[key] = {
+                    "key": key,
+                    "submitted_at": str(row[2] or "") if len(row) > 2 else "",
+                    "reason": str(row[3] or "") if len(row) > 3 else "",
+                    "origin": str(row[4] or "") if len(row) > 4 else "",
+                    "directory": str(row[5] or "") if len(row) > 5 else "",
+                    "party": str(row[6] or "") if len(row) > 6 else "",
+                    "employee": str(row[7] or "") if len(row) > 7 else "",
+                    "close_date": str(row[8] or "") if len(row) > 8 else "",
+                    "group": group,
+                }
+
+        return loaded
+
+    def _resolve_close_date_for_existing(row: Dict, default_close_date: str) -> str:
+        existing_close = (row.get("close_date") or "").strip()
+        if existing_close:
+            return existing_close
+
+        submitted_dt = _parse_ddmmyyyy(row.get("submitted_at", ""))
+        key = (row.get("key") or "").strip()
+        if submitted_dt and key:
+            settled_key = f"{submitted_dt.year}/{key}"
+            settled_info = settled_by_case_id.get(settled_key)
+            if settled_info and settled_info.get("settled_date"):
+                return settled_info.get("settled_date")
+
+        return default_close_date
+
     def _write_open_tests_sheet(ws, rows: List[Dict], title: str):
         """Write sheet for open test requests."""
         headers = ["Α/Α", "Case ID", "Ημ/νία Υποβ.", "Λόγος", "Είδος", "Διεύθυνση", "Αιτών / Party", "Ανάθεση σε", "Ημ/νία Κλεισίματος"]
@@ -377,23 +456,25 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
         
         # Data: 9 columns
         col_vals = [[], [], [], [], [], [], [], [], []]
-        
-        for idx, rec in enumerate(rows, start=1):
+
+        rows_sorted = sorted(
+            rows,
+            key=lambda r: (
+                _parse_ddmmyyyy(r.get("submitted_at", "")) or datetime.min,
+                str(r.get("key") or ""),
+            ),
+        )
+
+        for idx, rec in enumerate(rows_sorted, start=1):
             col_vals[0].append(idx)  # Α/Α
-            col_vals[1].append(str(rec.get("case_id", "")))
-            col_vals[2].append(_fmt_date(rec.get("submitted_at", "")))
-            col_vals[3].append(reason_labels.get(rec.get("test_reason", ""), rec.get("test_reason", "")))
-            col_vals[4].append(_get_request_origin_label(rec))
+            col_vals[1].append(str(rec.get("key", "")))
+            col_vals[2].append(rec.get("submitted_at", ""))
+            col_vals[3].append(rec.get("reason", ""))
+            col_vals[4].append(rec.get("origin", ""))
             col_vals[5].append(rec.get("directory", ""))
             col_vals[6].append(rec.get("party", ""))
-            
-            # Ανάθεση σε
-            charge_info = rec.get("_charge", {})
-            employee = charge_info.get("employee", "") if charge_info.get("charged") else ""
-            col_vals[7].append(employee)
-            
-            # Ημ/νία Κλεισίματος (κενό προς το παρόν)
-            col_vals[8].append("")
+            col_vals[7].append(rec.get("employee", ""))
+            col_vals[8].append(rec.get("close_date", ""))
         
         # Write data starting from row 3
         for row_idx, *_ in enumerate(col_vals[0], start=3):
@@ -405,17 +486,37 @@ def build_open_apps_xls(digest: Dict, monitor_instance=None, file_path: str | No
         for i, width in enumerate(col_widths, start=1):
             ws.column_dimensions[chr(64 + i)].width = width
     
+    current_charged = _current_rows_by_key(charged, group="charged")
+    current_uncharged = _current_rows_by_key(uncharged, group="uncharged")
+    current_all = {**current_charged, **current_uncharged}
+
+    existing_all = _load_existing_rows(file_path) if file_path else {}
+    close_date_today = datetime.now().strftime("%d-%m-%Y")
+
+    merged_all = {}
+    for key in set(existing_all.keys()) | set(current_all.keys()):
+        if key in current_all:
+            merged_all[key] = current_all[key]
+            merged_all[key]["close_date"] = ""
+        else:
+            prev_row = existing_all[key]
+            prev_row["close_date"] = _resolve_close_date_for_existing(prev_row, close_date_today)
+            merged_all[key] = prev_row
+
+    rows_charged = [r for r in merged_all.values() if r.get("group") == "charged"]
+    rows_uncharged = [r for r in merged_all.values() if r.get("group") == "uncharged"]
+
     # Build workbook
     wb = Workbook()
     
     # Sheet 1: Ανατεθειμένες
     ws1 = wb.active
     ws1.title = "Ανατεθειμένες"
-    _write_open_tests_sheet(ws1, charged, "✅ Ανατεθειμένες δοκιμαστικές (charged=True)")
+    _write_open_tests_sheet(ws1, rows_charged, "✅ Ανατεθειμένες δοκιμαστικές (charged=True)")
     
     # Sheet 2: Χωρίς Ανάθεση
     ws2 = wb.create_sheet("Χωρίς Ανάθεση")
-    _write_open_tests_sheet(ws2, uncharged, "⚠️ Χωρίς ανάθεση (charged=False)")
+    _write_open_tests_sheet(ws2, rows_uncharged, "⚠️ Χωρίς ανάθεση (charged=False)")
     
     # Return bytes or save to file
     if file_path:
